@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@source "../node_modules/flowbite-datepicker";
+
+/* Background & container Flowbite Datepicker */
+.datepicker-picker {
+  @apply rounded-lg border border-slate-700 bg-slate-800 p-2 shadow-lg;
+}
+
+/* Reset dasar halaman */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #1d4ed8;
+}
+
+/* Hapus panah input type number */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
