@@ -41,6 +41,9 @@ export default function LoginPage() {
         return;
       }
 
+      // Simpan username untuk ditampilkan di dashboard
+      sessionStorage.setItem('username', data.user.username);
+
       // Setelah login, ganti history /login menjadi /
       router.replace('/');
       router.refresh();

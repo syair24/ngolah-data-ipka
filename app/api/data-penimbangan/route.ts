@@ -36,6 +36,7 @@ function truncateTwoDecimals(value: number): number {
 //
 // 2026-09-20
 // menjadi:
+//
 // 20 September 2026
 // =========================================================
 
@@ -76,11 +77,6 @@ export async function GET(request: NextRequest) {
   try {
     const tanggal = request.nextUrl.searchParams.get('tanggal');
 
-    console.log('==========================================');
-    console.log('GET DATA PENIMBANGAN');
-    console.log('==========================================');
-    console.log('PARAMETER TANGGAL:', tanggal);
-
     // =======================================================
     // AMBIL SEMUA DATA LANGSUNG DARI DATABASE
     // =======================================================
@@ -98,36 +94,10 @@ export async function GET(request: NextRequest) {
         warna: true,
         dibuatPada: true,
       },
-
       orderBy: {
         dibuatPada: 'desc',
       },
     });
-
-    console.log('JUMLAH DATA DARI DATABASE:', data.length);
-
-    // =======================================================
-    // DEBUG: LIHAT DATA DATABASE
-    // =======================================================
-
-    if (data.length > 0) {
-      console.log(
-        'DATA DATABASE:',
-        data.map((item) => ({
-          id: item.id,
-          tanggal: item.tanggal,
-          lebarMaterial: Number(item.lebarMaterial),
-          ukuran: item.ukuran,
-          ketebalan: Number(item.ketebalan),
-          beratPiece: Number(item.beratPiece),
-          beratTabel: Number(item.beratTabel),
-          toleransi: Number(item.toleransi),
-          warna: item.warna,
-        }))
-      );
-    } else {
-      console.log('DATABASE KOSONG: tabel DataPenimbangan tidak memiliki data.');
-    }
 
     // =======================================================
     // FILTER TANGGAL
@@ -138,8 +108,6 @@ export async function GET(request: NextRequest) {
     if (tanggal) {
       const searchTanggal = getSearchDate(tanggal);
 
-      console.log('HASIL KONVERSI TANGGAL:', searchTanggal);
-
       if (!searchTanggal) {
         return NextResponse.json([]);
       }
@@ -147,12 +115,8 @@ export async function GET(request: NextRequest) {
       filteredData = data.filter((item) => {
         const databaseTanggal = item.tanggal;
 
-        console.log('BANDINGKAN:', databaseTanggal, '<->', searchTanggal);
-
         return databaseTanggal.includes(searchTanggal);
       });
-
-      console.log('JUMLAH DATA SETELAH FILTER TANGGAL:', filteredData.length);
     }
 
     // =======================================================
@@ -225,20 +189,6 @@ export async function GET(request: NextRequest) {
         warna = 'Merah';
       }
 
-      console.log('PROSES DATA:', {
-        id: item.id,
-        tanggal: item.tanggal,
-        beratPiece,
-        beratTabel,
-        toleransi,
-        upperLimit,
-        lowerLimit,
-        pieceWeightCompare,
-        upperLimitCompare,
-        lowerLimitCompare,
-        warna,
-      });
-
       // =====================================================
       // GROUP BERDASARKAN TANGGAL
       // =====================================================
@@ -273,17 +223,8 @@ export async function GET(request: NextRequest) {
 
     const result = Array.from(grouped.values());
 
-    console.log('JUMLAH CARD:', result.length);
-    console.log(
-      'TOTAL ITEM:',
-      result.reduce((total, card) => total + card.data.length, 0)
-    );
-    console.log('==========================================');
-
     return NextResponse.json(result);
   } catch (error) {
-    console.error('GET DATA PENIMBANGAN ERROR:', error);
-
     return NextResponse.json(
       {
         message: 'Gagal mengambil data penimbangan.',
