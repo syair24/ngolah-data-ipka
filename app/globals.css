@@ -4,7 +4,23 @@
 
 /* Background & container Flowbite Datepicker */
 .datepicker-picker {
-  @apply rounded-lg border border-slate-700 bg-slate-800 p-2 shadow-lg;
+  @apply rounded-lg border border-gray-300 bg-white p-2 shadow-lg text-gray-900;
+}
+
+/* Mengatur warna tanggal yang sedang aktif/dipilih (selected) di datepicker */
+.datepicker-picker .datepicker-cell.selected,
+.datepicker-picker .datepicker-cell.selected:hover {
+  background-color: #2563eb !important;
+  /* Ganti dengan warna latar pilihan lo (misal: biru) */
+  color: #ffffff !important;
+  /* Warna teks saat dipilih */
+}
+
+/* Mengatur warna saat tanggal disorot mouse (hover) */
+.datepicker-picker .datepicker-cell:hover {
+  background-color: #e2e8f0 !important;
+  /* Warna abu-abu muda saat di-hover */
+  color: #0f172a !important;
 }
 
 /* Reset dasar halaman */

@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) => {
-      return new Date(b.dibuatPada).getTime() - new Date(a.dibuatPada).getTime();
+      return a.id - b.id; // Diubah supaya ID terkecil (atau data hijau) ada di atas
     });
   }, [data]);
 
@@ -170,10 +170,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900">
-        <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-slate-700 bg-slate-800 shadow-lg">
+      <div className="min-h-screen bg-gray-50">
+        <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
           <div className="flex h-full items-center px-6">
-            <h1 className="text-lg font-semibold text-white">Production Dashboard</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Production Dashboard</h1>
           </div>
         </header>
 
@@ -181,9 +181,9 @@ export default function DashboardPage() {
           <div className="p-6">
             <div className="flex h-[500px] items-center justify-center">
               <div className="text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-600 border-t-blue-400" />
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
 
-                <p className="mt-4 text-sm text-slate-400">Memuat data dari database...</p>
+                <p className="mt-4 text-sm text-gray-500">Memuat data dari database...</p>
               </div>
             </div>
           </div>
@@ -193,13 +193,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-slate-700 bg-slate-800 shadow-lg">
+    <div className="min-h-screen bg-gray-50">
+      <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
         <div className="flex h-full items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-white">Production Dashboard</h1>
+          <h1 className="text-lg font-semibold text-gray-900">Production Dashboard</h1>
 
-          <div className="flex h-9 items-center rounded-md border border-emerald-800/70 bg-emerald-950/40 px-3.5">
-            <span className="text-sm font-medium leading-none text-emerald-400">{username}</span>
+          <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
+            <span className="text-sm font-medium leading-none text-emerald-700">{username}</span>
           </div>
         </div>
       </header>
@@ -207,103 +207,103 @@ export default function DashboardPage() {
       <main className="pt-16">
         <div className="p-6">
           {error && (
-            <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-              <p className="text-sm text-red-400">{error}</p>
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-medium text-white">Production Summary</h3>
+              <h3 className="text-sm font-medium text-gray-900">Production Summary</h3>
 
-              <p className="mt-1 text-xs text-slate-500">Seluruh data produksi bulan berjalan</p>
+              <p className="mt-1 text-xs text-gray-500">Seluruh data produksi bulan berjalan</p>
             </div>
 
-            <div className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5">
-              <span className="text-xs font-medium text-slate-300">{periodeBulan}</span>
+            <div className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 shadow-sm">
+              <span className="text-xs font-medium text-gray-700">{periodeBulan}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Total Data</p>
+                  <p className="text-sm text-gray-500">Total Data</p>
 
-                  <p className="mt-2 text-2xl font-semibold text-white">
+                  <p className="mt-2 text-2xl font-semibold text-gray-900">
                     {totalData.toLocaleString('id-ID')}
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                  <Scale size={20} className="text-blue-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                  <Scale size={20} className="text-blue-600" />
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-slate-500">Total data {periodeBulan}</p>
+              <p className="mt-3 text-xs text-gray-500">Total data {periodeBulan}</p>
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">+ Toleransi</p>
+                  <p className="text-sm text-gray-500">+ Toleransi</p>
 
-                  <p className="mt-2 text-2xl font-semibold text-red-400">
+                  <p className="mt-2 text-2xl font-semibold text-red-600">
                     {diAtasToleransi.toLocaleString('id-ID')}
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-                  <TrendingUp size={20} className="text-red-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50">
+                  <TrendingUp size={20} className="text-red-600" />
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-red-400">Di atas batas toleransi</p>
+              <p className="mt-3 text-xs text-red-600">Di atas batas toleransi</p>
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">- Toleransi</p>
+                  <p className="text-sm text-gray-500">- Toleransi</p>
 
-                  <p className="mt-2 text-2xl font-semibold text-emerald-400">
+                  <p className="mt-2 text-2xl font-semibold text-emerald-600">
                     {diBawahToleransi.toLocaleString('id-ID')}
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <TrendingDown size={20} className="text-emerald-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
+                  <TrendingDown size={20} className="text-emerald-600" />
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-emerald-400">Di bawah batas toleransi</p>
+              <p className="mt-3 text-xs text-emerald-600">Di bawah batas toleransi</p>
             </div>
 
-            <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Sesuai Toleransi</p>
+                  <p className="text-sm text-gray-500">Sesuai Toleransi</p>
 
-                  <p className="mt-2 text-2xl font-semibold text-white">
+                  <p className="mt-2 text-2xl font-semibold text-gray-900">
                     {sesuaiToleransi.toLocaleString('id-ID')}
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-500/10">
-                  <CheckCircle2 size={20} className="text-slate-300" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
+                  <CheckCircle2 size={20} className="text-gray-700" />
                 </div>
               </div>
 
-              <p className="mt-3 text-xs text-slate-400">Berat berada dalam batas toleransi</p>
+              <p className="mt-3 text-xs text-gray-500">Berat berada dalam batas toleransi</p>
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-700 bg-slate-800/50 p-5">
+          <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Latest Production Data</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Latest Production Data</h3>
 
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-gray-500">
                   {tanggalTerbaru
                     ? `Data penimbangan terakhir — ${tanggalTerbaru}`
                     : 'Belum ada data penimbangan'}
@@ -311,39 +311,39 @@ export default function DashboardPage() {
               </div>
 
               <div className="shrink-0">
-                <span className="inline-flex items-center rounded-lg border border-slate-600 bg-slate-700/70 px-3 py-1.5 text-xs text-slate-300">
+                <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs text-gray-700">
                   {latestDateData.length} data
                 </span>
               </div>
             </div>
 
-            <div className="dashboard-scrollbar h-[420px] overflow-x-auto overflow-y-auto rounded-lg border border-slate-700">
+            <div className="dashboard-scrollbar text-center h-[420px] overflow-x-auto overflow-y-auto rounded-lg border border-gray-200">
               <table className="w-full min-w-[900px] border-collapse text-sm">
-                <thead className="sticky top-0 z-20 bg-slate-800">
-                  <tr className="border-b border-slate-700 text-left">
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">No</th>
+                <thead className="sticky top-0 z-20 bg-gray-100">
+                  <tr className="border-b border-gray-200 text-center text-xs font-medium uppercase text-gray-600">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">No</th>
 
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
                       Lebar Material
                     </th>
 
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
                       Ukuran
                     </th>
 
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
                       Ketebalan
                     </th>
 
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">
-                      Berat Piece
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
+                      Berat Kg/Btg
                     </th>
 
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
                       Berat Tabel
                     </th>
 
-                    <th className="whitespace-nowrap px-3 py-3 font-medium text-slate-400">
+                    <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
                       Toleransi
                     </th>
                   </tr>
@@ -354,9 +354,9 @@ export default function DashboardPage() {
                     <tr>
                       <td colSpan={7} className="py-16 text-center">
                         <div>
-                          <p className="text-sm text-slate-400">Belum ada data penimbangan.</p>
+                          <p className="text-sm text-gray-500">Belum ada data penimbangan.</p>
 
-                          <p className="mt-1 text-xs text-slate-600">
+                          <p className="mt-1 text-xs text-gray-400">
                             Data yang lo input akan muncul di sini.
                           </p>
                         </div>
@@ -369,43 +369,41 @@ export default function DashboardPage() {
                       let rowClass = '';
 
                       if (status === 'Di bawah toleransi') {
-                        rowClass = 'bg-emerald-500/10 hover:bg-emerald-500/15';
+                        rowClass = 'bg-emerald-50 hover:bg-emerald-100/60';
                       } else if (status === 'Di atas toleransi') {
-                        rowClass = 'bg-red-500/10 hover:bg-red-500/15';
+                        rowClass = 'bg-red-50 hover:bg-red-100/60';
                       } else {
-                        rowClass = 'bg-slate-800/20 hover:bg-slate-800/70';
+                        rowClass = 'bg-white hover:bg-gray-50';
                       }
 
                       return (
                         <tr
                           key={item.id}
-                          className={`${rowClass} border-b border-slate-700/50 transition`}
+                          className={`${rowClass} border-b border-gray-200 transition`}
                         >
-                          <td className="whitespace-nowrap px-3 py-3 text-slate-400">
-                            {index + 1}
-                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 text-gray-500">{index + 1}</td>
 
-                          <td className="whitespace-nowrap px-3 py-3 text-slate-300">
+                          <td className="whitespace-nowrap px-3 py-3 text-gray-700">
                             {item.lebarMaterial}
                           </td>
 
-                          <td className="whitespace-nowrap px-3 py-3 font-medium text-white">
+                          <td className="whitespace-nowrap px-3 py-3 font-medium text-gray-900">
                             {item.ukuran}
                           </td>
 
-                          <td className="whitespace-nowrap px-3 py-3 text-slate-300">
+                          <td className="whitespace-nowrap px-3 py-3 text-gray-700">
                             {item.ketebalan.toFixed(1)} mm
                           </td>
 
-                          <td className="whitespace-nowrap px-3 py-3 text-white">
+                          <td className="whitespace-nowrap px-3 py-3 text-gray-900 font-medium">
                             {item.beratPiece.toFixed(2)} kg
                           </td>
 
-                          <td className="whitespace-nowrap px-3 py-3 text-slate-300">
+                          <td className="whitespace-nowrap px-3 py-3 text-gray-700">
                             {item.beratTabel.toFixed(2)} kg
                           </td>
 
-                          <td className="whitespace-nowrap px-3 py-3 text-slate-300">
+                          <td className="whitespace-nowrap px-3 py-3 text-gray-700">
                             ±{item.toleransi}%
                           </td>
                         </tr>

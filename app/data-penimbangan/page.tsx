@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 
-import { CalendarDays, Scale } from 'lucide-react';
+import { CalendarDays, FileSpreadsheet, Scale } from 'lucide-react';
 
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import DatePicker from '@/components/DatePicker';
+import { exportToExcel } from '@/helpers/exportExcel';
 
 interface WeighingItem {
   id: number;
@@ -38,11 +39,6 @@ function formatDateDisplay(value: string): string {
 // =========================================================
 // POTONG 2 ANGKA DI BELAKANG KOMA
 // BUKAN PEMBULATAN
-//
-// 2.5480 -> 2.54
-// 2.6520 -> 2.65
-// 2.0930 -> 2.09
-// 2.9990 -> 2.99
 // =========================================================
 
 function truncateTwoDecimals(value: number): number {
@@ -51,13 +47,6 @@ function truncateTwoDecimals(value: number): number {
 
 // =========================================================
 // HITUNG WARNA
-//
-// Piece < batas bawah = Hijau
-// Piece >= batas bawah && Piece <= batas atas = Putih
-// Piece > batas atas = Merah
-//
-// Perbandingan menggunakan 2 angka di belakang koma
-// TANPA PEMBULATAN.
 // =========================================================
 
 function calculateColor(
@@ -66,7 +55,6 @@ function calculateColor(
   tolerance: number
 ): 'Hijau' | 'Putih' | 'Merah' {
   const upperLimit = tableWeight + (tableWeight * tolerance) / 100;
-
   const lowerLimit = tableWeight - (tableWeight * tolerance) / 100;
 
   const pieceCompare = truncateTwoDecimals(pieceWeight);
@@ -100,12 +88,9 @@ export default function WeighingDataPage() {
       try {
         setLoading(true);
 
-        // GET API menggunakan parameter "tanggal"
         const url = searchDate
           ? `/api/data-penimbangan?tanggal=${encodeURIComponent(searchDate)}`
           : '/api/data-penimbangan';
-
-        console.log('FETCH:', url);
 
         const response = await fetch(url, {
           cache: 'no-store',
@@ -116,9 +101,6 @@ export default function WeighingDataPage() {
         }
 
         const result: WeighingCard[] = await response.json();
-
-        console.log('RESULT:', result);
-        console.log('JUMLAH CARD:', result.length);
 
         setWeighingData(result);
       } catch (error) {
@@ -147,21 +129,29 @@ export default function WeighingDataPage() {
   };
 
   // =========================================================
+  // MODAL TITLE
+  // =========================================================
+
+  const modalTitle: string = selectedData
+    ? `Data Penimbangan - ${formatDateDisplay(selectedData.tanggal)}`
+    : 'Data Penimbangan';
+
+  // =========================================================
   // RENDER
   // =========================================================
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       {/* =====================================================
           HEADER
       ====================================================== */}
 
-      <header className="fixed top-0 left-55 right-0 z-50 h-16 border-b border-slate-700 bg-slate-800 shadow-lg">
+      <header className="fixed top-0 left-55 right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
         <div className="flex h-full items-center justify-between gap-6 px-6">
           {/* TITLE */}
 
           <div className="flex shrink-0 items-center">
-            <h1 className="text-lg font-semibold text-white">Data Penimbangan</h1>
+            <h1 className="text-lg font-semibold text-gray-900">Data Penimbangan</h1>
           </div>
 
           {/* FILTER */}
@@ -170,13 +160,12 @@ export default function WeighingDataPage() {
             {/* DATE FILTER */}
 
             <div className="w-[220px]">
-              <div className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/60 px-3 py-2">
-                <span className="text-xs font-medium text-slate-300">Tanggal</span>
+              <div className="flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-3 py-2">
+                <span className="text-xs font-medium text-gray-600">Tanggal</span>
 
                 <DatePicker
                   value={searchDate}
                   onChange={(value) => {
-                    console.log('Pilih Tanggal:', value);
                     setSearchDate(value);
                   }}
                   className="w-36 [&_input]:h-7 [&_input]:py-0"
@@ -186,15 +175,15 @@ export default function WeighingDataPage() {
 
             {/* RECORD COUNT */}
 
-            <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/10 px-3.5 py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400">
+            <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                 <Scale size={15} />
               </div>
 
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-white">{weighingData.length}</span>
+                <span className="text-sm font-semibold text-gray-900">{weighingData.length}</span>
 
-                <span className="text-xs text-slate-400">Data</span>
+                <span className="text-xs text-gray-500">Data</span>
               </div>
             </div>
           </div>
@@ -208,45 +197,45 @@ export default function WeighingDataPage() {
       <main className="pt-16 p-6">
         <div className="w-full">
           {loading ? (
-            <div className="text-sm text-slate-400">Memuat data penimbangan...</div>
+            <div className="text-sm text-gray-500">Memuat data penimbangan...</div>
           ) : weighingData.length === 0 ? (
-            <div className="text-sm text-slate-400">Belum ada data penimbangan.</div>
+            <div className="text-sm text-gray-500">Belum ada data penimbangan.</div>
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {weighingData.map((data, index) => (
                 <div
                   key={data.id}
-                  className="group relative rounded-2xl border border-slate-700 bg-slate-800/60 p-5 transition-all duration-300 hover:border-blue-500/50 hover:bg-slate-800 hover:shadow-xl hover:shadow-blue-500/10"
+                  className="group relative rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5"
                 >
                   {/* NUMBER */}
 
-                  <div className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full border border-slate-600 bg-slate-800 text-xs font-semibold text-slate-300 shadow-lg transition-all duration-300 group-hover:border-blue-500/50 group-hover:bg-blue-600 group-hover:text-white">
+                  <div className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-md transition-all duration-300 group-hover:border-blue-500 group-hover:bg-blue-600 group-hover:text-white">
                     {index + 1}
                   </div>
 
                   {/* CARD HEADER */}
 
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-500/20">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-100">
                       <Scale size={22} strokeWidth={2} />
                     </div>
 
                     <div>
-                      <p className="text-sm font-semibold text-white">Data Penimbangan</p>
+                      <p className="text-sm font-semibold text-gray-900">Data Penimbangan</p>
 
-                      <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-400">
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
                         <CalendarDays size={13} />
 
                         <span>{formatDateDisplay(data.tanggal)}</span>
                       </div>
 
-                      <div className="mt-1 text-xs text-slate-400">
+                      <div className="mt-1 text-xs text-gray-500">
                         Toleransi {Number(data.toleransi).toFixed(0)}%
                       </div>
                     </div>
                   </div>
 
-                  <div className="my-2 h-px bg-slate-700/70" />
+                  <div className="my-2 h-px bg-gray-100" />
 
                   {/* BUTTONS */}
 
@@ -255,7 +244,7 @@ export default function WeighingDataPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleView(data)}
-                      className="flex-1 border-slate-600 bg-transparent text-slate-300 hover:border-slate-500 hover:bg-slate-700 hover:text-white !outline-none !ring-0 !ring-offset-0 focus:!outline-none focus:!ring-0 focus:!ring-offset-0 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
+                      className="flex-1 border-gray-300 bg-transparent text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:text-gray-900 !outline-none !ring-0 !ring-offset-0 focus:!outline-none focus:!ring-0 focus:!ring-offset-0 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
                     >
                       Lihat
                     </Button>
@@ -263,7 +252,7 @@ export default function WeighingDataPage() {
                     <Button
                       variant="warning"
                       size="sm"
-                      className="flex-1 !outline-none !ring-0 !ring-offset-0 focus:!outline-none focus:!ring-0 focus:!ring-offset-0 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 hover:bg-blue-500"
+                      className="flex-1 !outline-none !ring-0 !ring-offset-0 focus:!outline-none focus:!ring-0 focus:!ring-offset-0 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 hover:bg-blue-600"
                     >
                       Edit
                     </Button>
@@ -282,39 +271,53 @@ export default function WeighingDataPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={
-          selectedData
-            ? `Data Penimbangan - ${formatDateDisplay(selectedData.tanggal)}`
-            : 'Data Penimbangan'
-        }
+        title={modalTitle}
         size="6xl"
         footer={
           selectedData && (
-            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-5">
+            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-6">
+              {/* EXPORT EXCEL */}
+
+              <Button
+                variant="primary"
+                size="sm"
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => {
+                  if (selectedData) {
+                    exportToExcel(selectedData);
+                  }
+                }}
+              >
+                <FileSpreadsheet size={15} className="mr-2" />
+                Export Excel
+              </Button>
+
               {/* TOLERANSI */}
 
-              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/80 px-3 py-2">
-                <span className="text-xs text-slate-400">Toleransi</span>
+              <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <span className="text-xs text-gray-500">Toleransi</span>
 
-                <span className="text-xs font-semibold text-slate-200">
+                <span className="text-xs font-semibold text-gray-800">
                   ±{Number(selectedData.toleransi).toFixed(2)}%
                 </span>
               </div>
 
               {/* ALL */}
 
-              <div className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-700/20 px-3 py-2">
-                <span className="text-xs text-slate-400">Semua</span>
+              <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <span className="text-xs text-gray-500">Semua</span>
 
-                <span className="text-xs font-semibold text-white">{selectedData.data.length}</span>
+                <span className="text-xs font-semibold text-gray-900">
+                  {selectedData.data.length}
+                </span>
               </div>
 
               {/* MERAH */}
 
-              <div className="flex items-center justify-between rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2">
-                <span className="text-xs text-red-300">Merah</span>
+              <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <span className="text-xs text-red-700">Merah</span>
 
-                <span className="text-xs font-semibold text-red-300">
+                <span className="text-xs font-semibold text-red-700">
                   {
                     selectedData.data.filter((item) => {
                       const color = calculateColor(
@@ -331,10 +334,10 @@ export default function WeighingDataPage() {
 
               {/* HIJAU */}
 
-              <div className="flex items-center justify-between rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2">
-                <span className="text-xs text-green-300">Hijau</span>
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <span className="text-xs text-emerald-700">Hijau</span>
 
-                <span className="text-xs font-semibold text-green-300">
+                <span className="text-xs font-semibold text-emerald-700">
                   {
                     selectedData.data.filter((item) => {
                       const color = calculateColor(
@@ -351,10 +354,10 @@ export default function WeighingDataPage() {
 
               {/* PUTIH */}
 
-              <div className="flex items-center justify-between rounded-lg border border-slate-500/30 bg-slate-500/10 px-3 py-2">
-                <span className="text-xs text-slate-300">Putih</span>
+              <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <span className="text-xs text-gray-600">Putih</span>
 
-                <span className="text-xs font-semibold text-slate-300">
+                <span className="text-xs font-semibold text-gray-800">
                   {
                     selectedData.data.filter((item) => {
                       const color = calculateColor(
@@ -382,10 +385,10 @@ export default function WeighingDataPage() {
                 overflow-y-auto
                 [&::-webkit-scrollbar]:h-2
                 [&::-webkit-scrollbar]:w-2
-                [&::-webkit-scrollbar-track]:bg-slate-800/40
+                [&::-webkit-scrollbar-track]:bg-gray-100
                 [&::-webkit-scrollbar-thumb]:rounded-full
-                [&::-webkit-scrollbar-thumb]:bg-slate-600/50
-                hover:[&::-webkit-scrollbar-thumb]:bg-slate-500
+                [&::-webkit-scrollbar-thumb]:bg-gray-300
+                hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
                 [&::-webkit-scrollbar-button]:hidden
               "
             >
@@ -394,41 +397,41 @@ export default function WeighingDataPage() {
                     TABLE HEADER
                 ================================================== */}
 
-                <thead className="sticky top-0 z-20 bg-slate-800 shadow-sm">
-                  <tr className="border-b border-slate-700">
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">No</th>
+                <thead className="sticky top-0 z-20 bg-gray-100 shadow-sm">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">No</th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       Lebar Material
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">Ukuran</th>
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">Ukuran</th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       Ketebalan
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       Berat Piece
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       Berat Tabel
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       +{Number(selectedData.toleransi).toFixed(2)}%
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       -{Number(selectedData.toleransi).toFixed(2)}%
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">
                       Toleransi
                     </th>
 
-                    <th className="px-2.5 py-3 text-center font-semibold text-slate-300">Warna</th>
+                    <th className="px-2.5 py-3 text-center font-semibold text-gray-700">Warna</th>
                   </tr>
                 </thead>
 
@@ -452,34 +455,32 @@ export default function WeighingDataPage() {
 
                     // ============================================
                     // WARNA DIHITUNG ULANG
-                    // POTONG 2 ANGKA, BUKAN ROUND
                     // ============================================
 
                     const color = calculateColor(pieceWeight, tableWeight, tolerance);
 
                     const isGreen = color === 'Hijau';
                     const isRed = color === 'Merah';
-                    const isWhite = color === 'Putih';
 
                     // ============================================
-                    // ROW COLOR
+                    // ROW COLOR (Disesuaikan jadi terang / bg-red-100 & bg-emerald-100)
                     // ============================================
 
                     const rowColorClass = isGreen
-                      ? 'bg-green-500/10 text-green-300 border-green-500/20'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
                       : isRed
-                        ? 'bg-red-500/10 text-red-300 border-red-500/20'
-                        : 'bg-transparent text-slate-300 border-slate-700/70';
+                        ? 'bg-red-100 text-red-900 border-red-200'
+                        : 'bg-white text-gray-800 border-gray-200';
 
                     // ============================================
                     // BADGE COLOR
                     // ============================================
 
                     const badgeColorClass = isGreen
-                      ? 'bg-green-500/20 text-green-300'
+                      ? 'bg-emerald-200 text-emerald-800'
                       : isRed
-                        ? 'bg-red-500/20 text-red-300'
-                        : 'bg-slate-500/10 text-slate-300';
+                        ? 'bg-red-200 text-red-800'
+                        : 'bg-gray-200 text-gray-700';
 
                     return (
                       <tr key={item.id} className={`border-b last:border-b-0 ${rowColorClass}`}>
@@ -513,13 +514,13 @@ export default function WeighingDataPage() {
 
                         {/* +TOLERANSI */}
 
-                        <td className="px-2.5 py-2 font-medium text-green-400">
+                        <td className="px-2.5 py-2 font-medium text-red-600">
                           {upperLimit.toFixed(4)}
                         </td>
 
                         {/* -TOLERANSI */}
 
-                        <td className="px-2.5 py-2 font-medium text-red-400">
+                        <td className="px-2.5 py-2 font-medium text-emerald-600">
                           {lowerLimit.toFixed(4)}
                         </td>
 
@@ -531,7 +532,7 @@ export default function WeighingDataPage() {
 
                         <td className="px-2.5 py-2 font-medium">
                           <span
-                            className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-medium ${badgeColorClass}`}
+                            className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold ${badgeColorClass}`}
                           >
                             {color}
                           </span>

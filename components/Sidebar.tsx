@@ -1,18 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-
 import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, FileText, Scale, Settings } from 'lucide-react';
 
 export default function Sidebar() {
   const currentPath = usePathname();
   const router = useRouter();
 
   const menuList = [
-    { name: 'dashboard', path: '/dashboard' },
-    { name: 'Data Masuk', path: '/data-masuk' },
-    { name: 'Data Penimbangan', path: '/data-penimbangan' },
-    { name: 'Pengaturan', path: '/pengaturan' },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Data Masuk', path: '/data-masuk', icon: FileText },
+    { name: 'Data Penimbangan', path: '/data-penimbangan', icon: Scale },
+    { name: 'Pengaturan', path: '/pengaturan', icon: Settings },
   ];
 
   const handleLogout = async () => {
@@ -29,37 +29,39 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed z-50 hidden h-full w-[220px] flex-col border-r border-slate-700 bg-slate-800 p-5 md:flex">
+    <aside className="fixed z-50 hidden h-full w-[220px] flex-col border-r border-gray-200 bg-white p-5 md:flex">
       {/* LOGO */}
-      <div className="mb-8 text-xl font-bold tracking-wider text-blue-400">KALTO</div>
+      <div className="mb-8 px-3 text-xl font-bold tracking-wider text-blue-600">KALTO</div>
 
       {/* MENU */}
-      <nav className="flex-1 space-y-2">
+      <nav className="flex-1 space-y-1">
         {menuList.map((menu) => {
           const isCurrentActive = currentPath === menu.path;
+          const IconComponent = menu.icon;
 
           return (
             <Link
               key={menu.path}
               href={menu.path}
-              className={`block w-full rounded-lg px-4 py-2.5 text-left font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
                 isCurrentActive
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
-                  : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              {menu.name}
+              <IconComponent size={18} />
+              <span>{menu.name}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* KELUAR */}
-      <div className="border-t border-slate-700 pt-4">
+      <div className="border-t border-gray-200 pt-4">
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full cursor-pointer rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-center text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-300"
+          className="w-full cursor-pointer rounded-xl border border-red-200 bg-red-50 py-2.5 text-center text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
         >
           Keluar
         </button>

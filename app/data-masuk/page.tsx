@@ -255,10 +255,6 @@ export default function InputDataPage() {
       return;
     }
 
-    // =======================================================
-    // VALIDASI SEMUA BARIS
-    // =======================================================
-
     for (let index = 0; index < data.length; index++) {
       const item = data[index];
 
@@ -342,8 +338,6 @@ export default function InputDataPage() {
         throw new Error(result?.error || 'Gagal menyimpan data.');
       }
 
-      console.log('DATA BERHASIL DISIMPAN:', result);
-
       setData([]);
       setIsConfirmOpen(false);
     } catch (error) {
@@ -354,10 +348,6 @@ export default function InputDataPage() {
       setIsSaving(false);
     }
   };
-
-  // =========================================================
-  // KLIK SAVE
-  // =========================================================
 
   const handleSaveClick = () => {
     setSaveError('');
@@ -408,7 +398,6 @@ export default function InputDataPage() {
 
     const scroll = () => {
       const currentContainer = scrollContainerRef.current;
-
       const currentClientY = dragClientYRef.current;
 
       if (!currentContainer || currentClientY === null) {
@@ -417,7 +406,6 @@ export default function InputDataPage() {
       }
 
       const rect = currentContainer.getBoundingClientRect();
-
       const edgeSize = 120;
       const maxSpeed = 18;
 
@@ -425,15 +413,11 @@ export default function InputDataPage() {
 
       if (currentClientY < rect.top + edgeSize) {
         const distance = rect.top + edgeSize - currentClientY;
-
         const progress = Math.min(distance / edgeSize, 1);
-
         speed = -Math.max(2, Math.round(progress * progress * maxSpeed));
       } else if (currentClientY > rect.bottom - edgeSize) {
         const distance = currentClientY - (rect.bottom - edgeSize);
-
         const progress = Math.min(distance / edgeSize, 1);
-
         speed = Math.max(2, Math.round(progress * progress * maxSpeed));
       }
 
@@ -449,9 +433,7 @@ export default function InputDataPage() {
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
     setDragIndex(index);
-
     e.dataTransfer.effectAllowed = 'move';
-
     e.dataTransfer.setData('text/plain', String(index));
 
     const row = e.currentTarget.closest('tr');
@@ -461,34 +443,23 @@ export default function InputDataPage() {
     }
 
     const rowRect = row.getBoundingClientRect();
-
     const handleRect = e.currentTarget.getBoundingClientRect();
 
     const previewTable = document.createElement('table');
-
     previewTable.style.position = 'absolute';
-
     previewTable.style.top = '-9999px';
     previewTable.style.left = '-9999px';
-
     previewTable.style.width = `${rowRect.width}px`;
-
     previewTable.style.borderCollapse = 'collapse';
-
-    previewTable.style.background = '#1e293b';
-
-    previewTable.style.color = 'white';
-
+    previewTable.style.background = '#ffffff';
+    previewTable.style.color = '#111827';
     previewTable.style.fontSize = '12px';
 
     const previewRow = row.cloneNode(true) as HTMLTableRowElement;
-
     previewTable.appendChild(previewRow);
-
     document.body.appendChild(previewTable);
 
     const handleX = handleRect.left - rowRect.left + handleRect.width / 2;
-
     const handleY = handleRect.top - rowRect.top + handleRect.height / 2;
 
     e.dataTransfer.setDragImage(previewTable, handleX, handleY);
@@ -500,17 +471,13 @@ export default function InputDataPage() {
 
   const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     e.preventDefault();
-
     e.dataTransfer.dropEffect = 'move';
-
     setDropIndex(index);
-
     startAutoScroll(e.clientY);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
     e.preventDefault();
-
     stopAutoScroll();
 
     const sourceIndex = dragIndex;
@@ -523,11 +490,8 @@ export default function InputDataPage() {
 
     setData((prev) => {
       const newData = [...prev];
-
       const [movedItem] = newData.splice(sourceIndex, 1);
-
       newData.splice(index, 0, movedItem);
-
       return newData;
     });
 
@@ -537,7 +501,6 @@ export default function InputDataPage() {
 
   const handleDragEnd = () => {
     stopAutoScroll();
-
     setDragIndex(null);
     setDropIndex(null);
   };
@@ -547,19 +510,15 @@ export default function InputDataPage() {
   // =========================================================
 
   return (
-    <div className="fixed inset-0 h-screen w-full overflow-hidden bg-slate-900 text-white">
+    <div className="fixed inset-0 h-screen w-full overflow-hidden bg-gray-50 text-gray-900">
       {/* HEADER */}
-
-      <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-slate-700 bg-slate-800 shadow-lg">
+      <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
         <div className="flex h-full items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-white">Data Masuk</h1>
+          <h1 className="text-lg font-semibold text-gray-900">Data Masuk</h1>
 
           <div className="flex items-center gap-3">
-            {/* TANGGAL */}
-
-            <div className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/60 px-3 py-2">
-              <span className="text-xs font-medium text-slate-300">Tanggal</span>
-
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+              <span className="text-xs font-medium text-gray-700">Tanggal</span>
               <DatePicker
                 value={date}
                 onChange={setDate}
@@ -568,11 +527,8 @@ export default function InputDataPage() {
               />
             </div>
 
-            {/* TOLERANSI */}
-
-            <div className="flex items-center gap-2 rounded-xl border border-slate-600 bg-slate-900/60 px-3 py-2">
-              <span className="text-xs font-medium text-slate-300">Toleransi</span>
-
+            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+              <span className="text-xs font-medium text-gray-700">Toleransi</span>
               <div className="flex items-center gap-1">
                 <input
                   type="text"
@@ -580,7 +536,6 @@ export default function InputDataPage() {
                   value={tolerance}
                   onChange={(e) => {
                     const value = normalizeNumberInput(e.target.value);
-
                     setTolerance(value);
                     setSaveError('');
                   }}
@@ -589,35 +544,27 @@ export default function InputDataPage() {
                       e.preventDefault();
                     }
                   }}
-                  className="h-7 w-16 rounded-lg border border-slate-600 bg-slate-800 px-2 text-center text-xs text-white outline-none transition focus:border-blue-500"
+                  className="h-7 w-16 rounded-lg border border-gray-300 bg-white px-2 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
                 />
-
-                <span className="text-xs text-slate-400">%</span>
+                <span className="text-xs text-gray-500">%</span>
               </div>
             </div>
 
-            {/* RECORDS */}
-
-            <div className="flex items-center gap-1.5 rounded-xl border border-blue-500/20 bg-blue-500/10 px-3.5 py-2">
-              <span className="text-xs text-blue-300">Data</span>
-
-              <span className="text-sm font-semibold text-blue-400">{recordsCount}</span>
+            <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
+              <span className="text-xs text-blue-600">Data</span>
+              <span className="text-sm font-semibold text-blue-700">{recordsCount}</span>
             </div>
-
-            {/* RESET */}
 
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={handleResetClick}
-              className="h-9 gap-2 rounded-xl border-orange-500/40 bg-orange-500/10 px-3.5 text-xs font-medium text-orange-400 hover:border-orange-500/60 hover:bg-orange-500/20 hover:text-orange-300"
+              className="h-9 gap-2 rounded-xl border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
             >
               <RotateCcw size={14} />
               Reset
             </Button>
-
-            {/* SAVE */}
 
             <Button
               type="button"
@@ -625,14 +572,11 @@ export default function InputDataPage() {
               variant="outline"
               size="sm"
               disabled={isSaving}
-              className="!h-9 !gap-2 !rounded-xl !border-emerald-500/50 !bg-emerald-500/10 !px-3.5 !text-xs !font-medium !text-emerald-400 hover:!border-emerald-500/70 hover:!bg-emerald-500/20 hover:!text-emerald-300"
+              className="!h-9 !gap-2 !rounded-xl !border-emerald-200 !bg-emerald-50 !px-3.5 !text-xs !font-medium !text-emerald-600 hover:!border-emerald-300 hover:!bg-emerald-100 hover:!text-emerald-700"
             >
               <Save size={15} />
-
               {isSaving ? 'Menyimpan...' : 'Simpan Data'}
             </Button>
-
-            {/* ADD */}
 
             <Button
               type="button"
@@ -649,12 +593,11 @@ export default function InputDataPage() {
       </header>
 
       {/* MAIN */}
-
-      <main className="fixed bottom-0 left-55 right-0 top-16 overflow-hidden bg-slate-900 p-3 text-white">
-        <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-xl">
+      <main className="fixed bottom-0 left-55 right-0 top-16 overflow-hidden bg-gray-50 p-3 text-gray-900">
+        <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div
             ref={scrollContainerRef}
-            className="min-h-0 flex-1 overflow-auto [scrollbar-color:rgb(71_85_105)_rgb(30_41_59)] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-slate-800 [&::-webkit-scrollbar-thumb]:bg-slate-600 hover:[&::-webkit-scrollbar-thumb]:bg-slate-500"
+            className="min-h-0 flex-1 overflow-auto [scrollbar-color:rgb(203_213_225)_rgb(255_255_255)] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-white [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400"
           >
             <table className="w-full table-fixed text-center text-xs">
               <colgroup>
@@ -670,26 +613,17 @@ export default function InputDataPage() {
                 <col className="w-[6%]" />
               </colgroup>
 
-              <thead className="sticky top-0 z-20 bg-slate-800">
-                <tr className="border-b border-slate-700 text-slate-300">
+              <thead className="sticky top-0 z-20 bg-gray-100">
+                <tr className="border-b border-gray-200 text-gray-700">
                   <th className="px-2 py-3 font-medium">No</th>
-
                   <th className="px-2 py-3 font-medium">Lebar Material</th>
-
                   <th className="px-2 py-3 font-medium">Ukuran</th>
-
                   <th className="px-2 py-3 font-medium">Ketebalan</th>
-
                   <th className="px-2 py-3 font-medium">Berat Piece</th>
-
                   <th className="px-2 py-3 font-medium">Berat Tabel</th>
-
                   <th className="px-2 py-3 font-medium">+Toleransi</th>
-
                   <th className="px-2 py-3 font-medium">-Toleransi</th>
-
                   <th className="px-2 py-3 font-medium">Warna</th>
-
                   <th className="px-2 py-3 font-medium">Aksi</th>
                 </tr>
               </thead>
@@ -697,41 +631,36 @@ export default function InputDataPage() {
               <tbody>
                 {data.map((item, index) => {
                   const tableWeight = Number(normalizeNumberInput(item.tableWeight)) || 0;
-
                   const pieceWeight = Number(normalizeNumberInput(item.pieceWeight)) || 0;
 
                   const upperLimit = tableWeight + (tableWeight * toleranceValue) / 100;
-
                   const lowerLimit = tableWeight - (tableWeight * toleranceValue) / 100;
 
-                  const pieceWeightCompare = truncateToTwoDecimals(pieceWeight);
-
-                  const upperLimitCompare = truncateToTwoDecimals(upperLimit);
-
-                  const lowerLimitCompare = truncateToTwoDecimals(lowerLimit);
+                  const truncatedPiece = truncateToTwoDecimals(pieceWeight);
+                  const truncatedUpper = truncateToTwoDecimals(upperLimit);
+                  const truncatedLower = truncateToTwoDecimals(lowerLimit);
 
                   let color = 'Putih';
-
-                  let colorClass = 'border-slate-600 bg-slate-700/40 text-slate-200';
+                  let colorClass = 'border-gray-200 bg-gray-50 text-gray-700';
 
                   if (item.pieceWeight !== '' && item.tableWeight !== '') {
-                    if (pieceWeightCompare < lowerLimitCompare) {
-                      color = 'Hijau';
-
-                      colorClass = 'border-green-500/40 bg-green-500/10 text-green-300';
-                    } else if (pieceWeightCompare > upperLimitCompare) {
+                    if (truncatedPiece > truncatedUpper) {
+                      // Lebih dari batas atas (+) -> Merah
                       color = 'Merah';
-
-                      colorClass = 'border-red-500/40 bg-red-500/10 text-red-300';
+                      colorClass = 'border-red-200 bg-red-50 text-red-700 ';
+                    } else if (truncatedPiece < truncatedLower) {
+                      // Kurang dari batas bawah (-) -> Hijau
+                      color = 'Hijau';
+                      colorClass = 'border-emerald-200 bg-emerald-50 text-emerald-700';
                     } else {
+                      // Di dalam rentang -> Putih
                       color = 'Putih';
-
-                      colorClass = 'border-slate-600 bg-slate-700/40 text-slate-200';
+                      colorClass = 'border-gray-200 bg-gray-50 text-gray-700';
                     }
                   }
 
                   const rowClass =
-                    color === 'Hijau' ? 'bg-green-500/5' : color === 'Merah' ? 'bg-red-500/5' : '';
+                    color === 'Merah' ? 'bg-red-100' : color === 'Hijau' ? 'bg-emerald-100' : '';
 
                   const isDropTarget = dropIndex === index && dragIndex !== index;
 
@@ -746,15 +675,11 @@ export default function InputDataPage() {
                           setDropIndex(null);
                         }
                       }}
-                      className={`border-b border-slate-700 transition-colors ${rowClass} ${
-                        isDropTarget
-                          ? 'border-y-2 border-dashed border-blue-400 bg-blue-500/10'
-                          : ''
+                      className={`border-b border-gray-200 transition-colors ${rowClass} ${
+                        isDropTarget ? 'border-y-2 border-dashed border-blue-500 bg-blue-50/50' : ''
                       }`}
                     >
-                      <td className="px-2 py-2 text-slate-400">{index + 1}</td>
-
-                      {/* MATERIAL WIDTH */}
+                      <td className="px-2 py-2 text-gray-500">{index + 1}</td>
 
                       <td className="px-2 py-2">
                         <input
@@ -768,11 +693,9 @@ export default function InputDataPage() {
                             updateRow(index, 'materialWidth', normalizeNumberInput(e.target.value))
                           }
                           onKeyDown={(e) => handleInputKeyDown(e, index, 'materialWidth')}
-                          className="h-8 w-[85%] max-w-20 rounded-lg border border-slate-600 bg-slate-900 px-1.5 text-center text-xs text-white outline-none transition focus:border-blue-500"
+                          className="h-8 w-[85%] max-w-20 rounded-lg border border-gray-300 bg-white px-1.5 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
                         />
                       </td>
-
-                      {/* SIZE */}
 
                       <td className="px-2 py-2">
                         <input
@@ -785,11 +708,9 @@ export default function InputDataPage() {
                             updateRow(index, 'size', normalizeSizeInput(e.target.value))
                           }
                           onKeyDown={(e) => handleInputKeyDown(e, index, 'size')}
-                          className="h-8 w-[85%] max-w-20 rounded-lg border border-slate-600 bg-slate-900 px-1.5 text-center text-xs text-white outline-none transition focus:border-blue-500"
+                          className="h-8 w-[85%] max-w-20 rounded-lg border border-gray-300 bg-white px-1.5 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
                         />
                       </td>
-
-                      {/* THICKNESS */}
 
                       <td className="px-2 py-2">
                         <input
@@ -803,11 +724,9 @@ export default function InputDataPage() {
                             updateRow(index, 'thickness', normalizeNumberInput(e.target.value))
                           }
                           onKeyDown={(e) => handleInputKeyDown(e, index, 'thickness')}
-                          className="h-8 w-[85%] max-w-20 rounded-lg border border-slate-600 bg-slate-900 px-1.5 text-center text-xs text-white outline-none transition focus:border-blue-500"
+                          className="h-8 w-[85%] max-w-20 rounded-lg border border-gray-300 bg-white px-1.5 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
                         />
                       </td>
-
-                      {/* PIECE WEIGHT */}
 
                       <td className="px-2 py-2">
                         <input
@@ -821,11 +740,9 @@ export default function InputDataPage() {
                             updateRow(index, 'pieceWeight', normalizeNumberInput(e.target.value))
                           }
                           onKeyDown={(e) => handleInputKeyDown(e, index, 'pieceWeight')}
-                          className="h-8 w-[85%] max-w-20 rounded-lg border border-slate-600 bg-slate-900 px-1.5 text-center text-xs text-white outline-none transition focus:border-blue-500"
+                          className="h-8 w-[85%] max-w-20 rounded-lg border border-gray-300 bg-white px-1.5 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
                         />
                       </td>
-
-                      {/* TABLE WEIGHT */}
 
                       <td className="px-2 py-2">
                         <input
@@ -839,19 +756,16 @@ export default function InputDataPage() {
                             updateRow(index, 'tableWeight', normalizeNumberInput(e.target.value))
                           }
                           onKeyDown={(e) => handleInputKeyDown(e, index, 'tableWeight')}
-                          className="h-8 w-[85%] max-w-20 rounded-lg border border-slate-600 bg-slate-900 px-1.5 text-center text-xs text-white outline-none transition focus:border-blue-500"
+                          className="h-8 w-[85%] max-w-20 rounded-lg border border-gray-300 bg-white px-1.5 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
                         />
                       </td>
 
-                      {/* UPPER */}
-
-                      <td className="px-2 py-2 text-green-400">{upperLimit.toFixed(4)}</td>
-
-                      {/* LOWER */}
-
-                      <td className="px-2 py-2 text-red-400">{lowerLimit.toFixed(4)}</td>
-
-                      {/* COLOR */}
+                      <td className="px-2 py-2 font-medium text-red-600">
+                        {upperLimit.toFixed(4)}
+                      </td>
+                      <td className="px-2 py-2 font-medium text-emerald-600">
+                        {lowerLimit.toFixed(4)}
+                      </td>
 
                       <td className="px-2 py-2">
                         <span
@@ -861,23 +775,17 @@ export default function InputDataPage() {
                         </span>
                       </td>
 
-                      {/* ACTION */}
-
                       <td className="px-2 py-2">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* DRAG */}
-
                           <div
                             draggable
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragEnd={handleDragEnd}
                             title="Geser untuk mengubah urutan"
-                            className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-lg border border-slate-600 bg-slate-900 text-slate-400 transition-colors hover:border-blue-500/50 hover:bg-slate-700 hover:text-blue-400 active:cursor-grabbing"
+                            className="flex h-8 w-8 shrink-0 cursor-grab items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 transition-colors hover:border-blue-300 hover:bg-gray-100 hover:text-blue-600 active:cursor-grabbing"
                           >
                             <GripVertical size={16} />
                           </div>
-
-                          {/* DELETE */}
 
                           <Button
                             type="button"
@@ -886,7 +794,7 @@ export default function InputDataPage() {
                             aria-label={`Hapus data baris ${index + 1}`}
                             variant="outline"
                             size="sm"
-                            className="!h-8 !w-8 !shrink-0 !rounded-lg !border-red-500/50 !bg-red-500/10 !p-0 !text-red-400 hover:!border-red-500/70 hover:!bg-red-500/20 hover:!text-red-300"
+                            className="!h-8 !w-8 !shrink-0 !rounded-lg !border-red-200 !bg-red-50 !p-0 !text-red-600 hover:!border-red-300 hover:!bg-red-100 hover:!text-red-700"
                           >
                             <Trash2 size={20} strokeWidth={2.2} />
                           </Button>
@@ -896,14 +804,12 @@ export default function InputDataPage() {
                   );
                 })}
 
-                {/* EMPTY */}
-
                 {data.length === 0 && (
                   <tr>
                     <td
                       colSpan={10}
                       className={`px-2 py-16 text-center text-xs ${
-                        saveError ? 'text-red-400' : 'text-slate-500'
+                        saveError ? 'text-red-600' : 'text-gray-500'
                       }`}
                     >
                       {saveError || 'Belum ada data. Klik Tambah Data untuk menambahkan data.'}
@@ -911,11 +817,12 @@ export default function InputDataPage() {
                   </tr>
                 )}
 
-                {/* ERROR */}
-
                 {data.length > 0 && saveError && (
                   <tr>
-                    <td colSpan={10} className="px-2 py-3 text-center text-xs text-red-400">
+                    <td
+                      colSpan={10}
+                      className="px-2 py-3 text-center text-xs font-medium text-red-600"
+                    >
                       {saveError}
                     </td>
                   </tr>
@@ -924,22 +831,16 @@ export default function InputDataPage() {
             </table>
           </div>
 
-          {/* FOOTER */}
-
-          <div className="flex shrink-0 items-center justify-between gap-4 border-t border-slate-700 px-5 py-3">
-            <span className={`text-xs ${saveError ? 'text-red-400' : 'text-slate-500'}`}>
+          <div className="flex shrink-0 items-center justify-between gap-4 border-t border-gray-200 bg-white px-5 py-3">
+            <span className={`text-xs ${saveError ? 'text-red-600' : 'text-gray-500'}`}>
               {saveError || 'Data akan tersimpan ke database setelah tombol Simpan Data ditekan.'}
             </span>
-
-            <span className="text-xs font-medium text-slate-300">Total: {data.length}</span>
+            <span className="text-xs font-medium text-gray-700">Total: {data.length}</span>
           </div>
         </div>
       </main>
 
-      {/* =====================================================
-          MODAL KONFIRMASI SAVE
-          ===================================================== */}
-
+      {/* MODAL KONFIRMASI SAVE */}
       <Modal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
@@ -962,40 +863,30 @@ export default function InputDataPage() {
               type="button"
               variant="primary"
               size="sm"
-              className="!h-9 !gap-2 !rounded-xl !border-emerald-500/50 !bg-emerald-500/10 !px-3.5 !text-xs !font-medium !text-emerald-400 hover:!border-emerald-500/70 hover:!bg-emerald-500/20 hover:!text-emerald-300"
+              className="!h-9 !gap-2 !rounded-xl !border-emerald-200 !bg-emerald-50 !px-3.5 !text-xs !font-medium !text-emerald-600 hover:!border-emerald-300 hover:!bg-emerald-100 hover:!text-emerald-700"
               disabled={isSaving}
               onClick={async () => {
                 await saveData();
               }}
             >
               <Save size={15} />
-
               {isSaving ? 'Menyimpan...' : 'Ya, Simpan'}
             </Button>
           </div>
         }
       >
         <div className="flex flex-col items-center text-center">
-          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">
             <Save size={27} />
           </div>
-
-          <h3 className="mb-3 text-base font-semibold text-white">Konfirmasi Data</h3>
-
-          <p className="max-w-sm text-sm leading-6 text-slate-400">
+          <h3 className="mb-3 text-base font-semibold text-gray-900">Konfirmasi Data</h3>
+          <p className="max-w-sm text-sm leading-6 text-gray-600">
             Apakah tanggal dan data yang Anda masukkan sudah benar?
-          </p>
-
-          <p className="mt-1 max-w-sm text-sm leading-6 text-slate-400">
-            Silakan periksa kembali informasi tersebut sebelum menyimpan.
           </p>
         </div>
       </Modal>
 
-      {/* =====================================================
-          MODAL KONFIRMASI RESET
-          ===================================================== */}
-
+      {/* MODAL KONFIRMASI RESET */}
       <Modal
         isOpen={isResetConfirmOpen}
         onClose={() => setIsResetConfirmOpen(false)}
@@ -1018,7 +909,7 @@ export default function InputDataPage() {
               variant="outline"
               size="sm"
               onClick={confirmReset}
-              className="!h-9 !gap-2 !rounded-xl !border-orange-500/50 !bg-orange-500/10 !px-3.5 !text-xs !font-medium !text-orange-400 hover:!border-orange-500/70 hover:!bg-orange-500/20 hover:!text-orange-300"
+              className="!h-9 !gap-2 !rounded-xl !border-orange-200 !bg-orange-50 !px-3.5 !text-xs !font-medium !text-orange-600 hover:!border-orange-300 hover:!bg-orange-100 hover:!text-orange-700"
             >
               <RotateCcw size={15} />
               Ya, Reset
@@ -1027,18 +918,12 @@ export default function InputDataPage() {
         }
       >
         <div className="flex flex-col items-center text-center">
-          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400">
+          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600">
             <RotateCcw size={27} />
           </div>
-
-          <h3 className="mb-3 text-base font-semibold text-white">Konfirmasi Reset</h3>
-
-          <p className="max-w-sm text-sm leading-6 text-slate-400">
+          <h3 className="mb-3 text-base font-semibold text-gray-900">Konfirmasi Reset</h3>
+          <p className="max-w-sm text-sm leading-6 text-gray-600">
             Apakah Anda yakin ingin mereset semua data yang sudah dimasukkan?
-          </p>
-
-          <p className="mt-1 max-w-sm text-sm leading-6 text-slate-400">
-            Semua data pada tabel akan dihapus dari input dan tidak dapat dikembalikan.
           </p>
         </div>
       </Modal>

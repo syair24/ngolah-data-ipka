@@ -70,23 +70,23 @@ export default function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs sm:p-6"
       onClick={handleOverlayClick}
     >
       <div
-        className={`flex max-h-[85vh] w-full ${sizes[size]} flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-2xl`}
+        className={`flex max-h-[85vh] w-full ${sizes[size]} flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl`}
         onClick={(event) => event.stopPropagation()}
       >
         {/* HEADER */}
         {(title || showCloseButton) && (
-          <div className="flex h-[73px] shrink-0 items-center justify-between border-b border-slate-700 px-6">
-            {title ? <h2 className="text-base font-semibold text-white">{title}</h2> : <div />}
+          <div className="flex h-[73px] shrink-0 items-center justify-between border-b border-gray-200 px-6">
+            {title ? <h2 className="text-base font-semibold text-gray-900">{title}</h2> : <div />}
 
             {showCloseButton && (
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-700 hover:text-white"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
               >
                 <X size={20} />
               </button>
@@ -102,13 +102,14 @@ export default function Modal({
             overflow-y-auto
             overflow-x-auto
             p-6
+            text-gray-900
 
             [&::-webkit-scrollbar]:h-2
             [&::-webkit-scrollbar]:w-2
-            [&::-webkit-scrollbar-track]:bg-slate-800/40
+            [&::-webkit-scrollbar-track]:bg-gray-50
             [&::-webkit-scrollbar-thumb]:rounded-full
-            [&::-webkit-scrollbar-thumb]:bg-slate-600/50
-            hover:[&::-webkit-scrollbar-thumb]:bg-slate-500
+            [&::-webkit-scrollbar-thumb]:bg-gray-300
+            hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
             [&::-webkit-scrollbar-button]:hidden
           "
         >
@@ -116,9 +117,7 @@ export default function Modal({
         </div>
 
         {/* FOOTER */}
-        {footer && (
-          <div className="shrink-0 border-t border-slate-700 bg-slate-800 p-4">{footer}</div>
-        )}
+        {footer && <div className="shrink-0 border-t border-gray-200 bg-white p-4">{footer}</div>}
       </div>
     </div>,
     document.body

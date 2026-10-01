@@ -13,16 +13,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="en">
-      <body className="antialiased bg-slate-900 text-white">
+      <body className="antialiased">
         {isAuthPage ? (
           // Jika di halaman auth, render polos tanpa sidebar
           children
         ) : (
           // Jika di halaman dashboard aplikasi, bungkus dengan Sidebar & Navbar
-          <div className="flex min-h-screen bg-slate-900 text-white">
+          <div className="flex min-h-screen bg-gray-50">
             <Sidebar />
             <div className="flex-1 flex flex-col md:pl-55">
-              <main className="p-6 flex-1 bg-slate-900">{children}</main>
+              <main className="p-6 flex-1">{children}</main>
             </div>
           </div>
         )}

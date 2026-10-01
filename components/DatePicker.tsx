@@ -127,7 +127,7 @@ export default function DatePicker({
   return (
     <div className={`relative ${className}`}>
       <div className="pointer-events-none absolute inset-y-0 start-0 z-10 flex items-center ps-3">
-        <CalendarDays size={16} className="text-slate-400" />
+        <CalendarDays size={16} className="text-gray-400" />
       </div>
 
       <input
@@ -136,7 +136,7 @@ export default function DatePicker({
         defaultValue={formatDisplayDate(value)}
         placeholder={placeholder}
         autoComplete="off"
-        className="block w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 ps-10 pe-3 text-sm text-white placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="block w-full rounded-lg border border-gray-300 bg-white py-2.5 ps-10 pe-3 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
       />
     </div>
   );
