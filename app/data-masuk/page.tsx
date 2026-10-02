@@ -619,7 +619,7 @@ export default function InputDataPage() {
                   <th className="px-2 py-3 font-medium">Lebar Material</th>
                   <th className="px-2 py-3 font-medium">Ukuran</th>
                   <th className="px-2 py-3 font-medium">Ketebalan</th>
-                  <th className="px-2 py-3 font-medium">Berat Piece</th>
+                  <th className="px-2 py-3 font-medium">Berat Kg/Btg</th>
                   <th className="px-2 py-3 font-medium">Berat Tabel</th>
                   <th className="px-2 py-3 font-medium">+Toleransi</th>
                   <th className="px-2 py-3 font-medium">-Toleransi</th>

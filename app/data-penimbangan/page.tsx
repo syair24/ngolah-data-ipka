@@ -9,6 +9,10 @@ import Modal from '@/components/Modal';
 import DatePicker from '@/components/DatePicker';
 import { exportToExcel } from '@/helpers/exportExcel';
 
+// =========================================================
+// INTERFACES (PASTIKAN KEDUANYA ADA DI SINI)
+// =========================================================
+
 interface WeighingItem {
   id: number;
   lebarMaterial: number;
@@ -25,6 +29,11 @@ interface WeighingCard {
   id: number;
   tanggal: string;
   toleransi: number;
+  user: {
+    id: number;
+    username: string;
+    email: string;
+  } | null;
   data: WeighingItem[];
 }
 
@@ -231,6 +240,13 @@ export default function WeighingDataPage() {
 
                       <div className="mt-1 text-xs text-gray-500">
                         Toleransi {Number(data.toleransi).toFixed(0)}%
+                      </div>
+
+                      <div className="mt-1 text-xs text-gray-500">
+                        Admin:{' '}
+                        <span className="font-semibold text-gray-700">
+                          {data.user?.username || 'Sistem'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -463,7 +479,7 @@ export default function WeighingDataPage() {
                     const isRed = color === 'Merah';
 
                     // ============================================
-                    // ROW COLOR (Disesuaikan jadi terang / bg-red-100 & bg-emerald-100)
+                    // ROW COLOR
                     // ============================================
 
                     const rowColorClass = isGreen

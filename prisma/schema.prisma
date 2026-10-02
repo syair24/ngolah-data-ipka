@@ -1,21 +1,28 @@
+// 1. Generator Client (Wajib ada di paling atas)
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../app/generated/prisma"
 }
 
+// 2. Datasource DB (Wajib ada agar Prisma tahu jenis databasenya)
 datasource db {
   provider = "postgresql"
 }
 
+// 3. Model User
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  email           String            @unique
+  password        String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Hubungan ke DataPenimbangan (Satu user bisa menginput banyak data timbangan)
+  dataPenimbangan DataPenimbangan[] 
 }
 
+// 4. Model DataPenimbangan
 model DataPenimbangan {
   id              Int      @id @default(autoincrement())
   tanggal         String
@@ -28,4 +35,8 @@ model DataPenimbangan {
   warna           String
   dibuatPada      DateTime @default(now())
   diperbaruiPada  DateTime @updatedAt
+  
+  // Relasi ke User
+  userId          Int      
+  user            User     @relation(fields: [userId], references: [id])
 }

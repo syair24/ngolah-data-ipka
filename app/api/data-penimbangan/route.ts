@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@/app/generated/prisma';
 
-import { prisma } from '@/lib/prisma';
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL belum diset');
+}
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = new PrismaClient({ adapter });
 
 const MONTHS = [
   'Januari',
@@ -17,38 +26,15 @@ const MONTHS = [
   'Desember',
 ];
 
-// =========================================================
-// POTONG 2 ANGKA DI BELAKANG KOMA
-// BUKAN PEMBULATAN
-//
-// 2.5480 -> 2.54
-// 2.6520 -> 2.65
-// 2.0930 -> 2.09
-// 2.9990 -> 2.99
-// =========================================================
-
 function truncateTwoDecimals(value: number): number {
   return Math.trunc(value * 100) / 100;
 }
 
-// =========================================================
-// FORMAT TANGGAL DARI DATEPICKER
-//
-// 2026-09-20
-// menjadi:
-//
-// 20 September 2026
-// =========================================================
-
 function getSearchDate(date: string): string | null {
   const parts = date.split('-');
-
-  if (parts.length !== 3) {
-    return null;
-  }
+  if (parts.length !== 3) return null;
 
   const [year, month, day] = parts;
-
   const monthNumber = Number(month);
   const dayNumber = Number(day);
 
@@ -69,18 +55,11 @@ function getSearchDate(date: string): string | null {
   return `${dayNumber} ${MONTHS[monthNumber - 1]} ${year}`;
 }
 
-// =========================================================
-// GET DATA PENIMBANGAN
-// =========================================================
-
 export async function GET(request: NextRequest) {
   try {
     const tanggal = request.nextUrl.searchParams.get('tanggal');
 
-    // =======================================================
-    // AMBIL SEMUA DATA LANGSUNG DARI DATABASE
-    // =======================================================
-
+    // Ambil data penimbangan dan relasi admin usernya
     const data = await prisma.dataPenimbangan.findMany({
       select: {
         id: true,
@@ -93,35 +72,27 @@ export async function GET(request: NextRequest) {
         toleransi: true,
         warna: true,
         dibuatPada: true,
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+          },
+        },
       },
       orderBy: {
         dibuatPada: 'desc',
       },
     });
 
-    // =======================================================
-    // FILTER TANGGAL
-    // =======================================================
-
     let filteredData = data;
 
     if (tanggal) {
       const searchTanggal = getSearchDate(tanggal);
+      if (!searchTanggal) return NextResponse.json([]);
 
-      if (!searchTanggal) {
-        return NextResponse.json([]);
-      }
-
-      filteredData = data.filter((item) => {
-        const databaseTanggal = item.tanggal;
-
-        return databaseTanggal.includes(searchTanggal);
-      });
+      filteredData = data.filter((item) => item.tanggal.includes(searchTanggal));
     }
-
-    // =======================================================
-    // GROUP DATA BERDASARKAN TANGGAL
-    // =======================================================
 
     const grouped = new Map<
       string,
@@ -129,6 +100,11 @@ export async function GET(request: NextRequest) {
         id: number;
         tanggal: string;
         toleransi: number;
+        user: {
+          id: number;
+          username: string;
+          email: string;
+        } | null;
         data: {
           id: number;
           lebarMaterial: number;
@@ -143,10 +119,6 @@ export async function GET(request: NextRequest) {
       }
     >();
 
-    // =======================================================
-    // PROSES DATA
-    // =======================================================
-
     for (const item of filteredData) {
       const lebarMaterial = Number(item.lebarMaterial);
       const ketebalan = Number(item.ketebalan);
@@ -154,44 +126,19 @@ export async function GET(request: NextRequest) {
       const beratTabel = Number(item.beratTabel);
       const toleransi = Number(item.toleransi);
 
-      // =====================================================
-      // HITUNG BATAS TOLERANSI
-      // =====================================================
-
       const upperLimit = beratTabel + (beratTabel * toleransi) / 100;
-
       const lowerLimit = beratTabel - (beratTabel * toleransi) / 100;
 
-      // =====================================================
-      // PERBANDINGAN 2 ANGKA
-      // TANPA PEMBULATAN
-      // =====================================================
-
       const pieceWeightCompare = truncateTwoDecimals(beratPiece);
-
       const upperLimitCompare = truncateTwoDecimals(upperLimit);
-
       const lowerLimitCompare = truncateTwoDecimals(lowerLimit);
 
-      // =====================================================
-      // TENTUKAN WARNA
-      //
-      // < batas bawah = Hijau
-      // >= batas bawah dan <= batas atas = Putih
-      // > batas atas = Merah
-      // =====================================================
-
       let warna: 'Hijau' | 'Putih' | 'Merah' = 'Putih';
-
       if (pieceWeightCompare < lowerLimitCompare) {
         warna = 'Hijau';
       } else if (pieceWeightCompare > upperLimitCompare) {
         warna = 'Merah';
       }
-
-      // =====================================================
-      // GROUP BERDASARKAN TANGGAL
-      // =====================================================
 
       const tanggalKey = item.tanggal;
 
@@ -200,6 +147,7 @@ export async function GET(request: NextRequest) {
           id: item.id,
           tanggal: item.tanggal,
           toleransi,
+          user: item.user || null,
           data: [],
         });
       }
@@ -213,26 +161,19 @@ export async function GET(request: NextRequest) {
         beratTabel,
         toleransi,
         warna,
-        dibuatPada: item.dibuatPada.toISOString(),
+        dibuatPada: item.dibuatPada ? item.dibuatPada.toISOString() : new Date().toISOString(),
       });
     }
 
-    // =======================================================
-    // HASIL AKHIR
-    // =======================================================
-
-    const result = Array.from(grouped.values());
-
-    return NextResponse.json(result);
+    return NextResponse.json(Array.from(grouped.values()));
   } catch (error) {
+    console.error('GET API ERROR:', error);
     return NextResponse.json(
       {
-        message: 'Gagal mengambil data penimbangan.',
-        error: error instanceof Error ? error.message : String(error),
+        success: false,
+        error: error instanceof Error ? error.message : 'Gagal memproses data.',
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
