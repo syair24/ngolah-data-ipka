@@ -11,7 +11,11 @@ export default function Sidebar() {
   const menuList = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Data Masuk', path: '/data-masuk', icon: FileText },
-    { name: 'Data Penimbangan', path: '/data-penimbangan', icon: Scale },
+    {
+      name: 'Data Penimbangan',
+      path: '/data-penimbangan',
+      icon: Scale,
+    },
     { name: 'Pengaturan', path: '/pengaturan', icon: Settings },
   ];
 
@@ -29,9 +33,14 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed z-50 hidden h-full w-[220px] flex-col border-r border-gray-200 bg-white p-5 md:flex">
+    <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[220px] flex-col border-r border-gray-200 bg-white px-3 py-5 md:flex">
       {/* LOGO */}
-      <div className="mb-8 px-3 text-xl font-bold tracking-wider text-blue-600">KALTO</div>
+      <div className="mb-8 px-2">
+        <h1 className="text-sm font-bold leading-5 tracking-wide text-blue-600">
+          Production Control
+          <span className="block text-gray-700">System</span>
+        </h1>
+      </div>
 
       {/* MENU */}
       <nav className="flex-1 space-y-1">
@@ -43,13 +52,14 @@ export default function Sidebar() {
             <Link
               key={menu.path}
               href={menu.path}
-              className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
                 isCurrentActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/10'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              <IconComponent size={18} />
+              <IconComponent size={17} strokeWidth={1.8} />
+
               <span>{menu.name}</span>
             </Link>
           );
@@ -61,7 +71,7 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full cursor-pointer rounded-xl border border-red-200 bg-red-50 py-2.5 text-center text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
+          className="w-full cursor-pointer rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-center text-[13px] font-medium text-red-600 transition-colors hover:bg-red-100 hover:text-red-700"
         >
           Keluar
         </button>

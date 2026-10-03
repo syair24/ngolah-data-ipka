@@ -7,10 +7,12 @@ import { CalendarDays, FileSpreadsheet, Scale } from 'lucide-react';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import DatePicker from '@/components/DatePicker';
+import EditWeighingModal from '@/components/EditWeighingModal';
+
 import { exportToExcel } from '@/helpers/exportExcel';
 
 // =========================================================
-// INTERFACES (PASTIKAN KEDUANYA ADA DI SINI)
+// INTERFACES
 // =========================================================
 
 interface WeighingItem {
@@ -84,9 +86,18 @@ function calculateColor(
 export default function WeighingDataPage() {
   const [weighingData, setWeighingData] = useState<WeighingCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
   const [searchDate, setSearchDate] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const [selectedData, setSelectedData] = useState<WeighingCard | null>(null);
+
+  const [selectedEditData, setSelectedEditData] = useState<WeighingCard | null>(null);
+
+  const [error, setError] = useState('');
 
   // =========================================================
   // FETCH DATA
@@ -96,6 +107,7 @@ export default function WeighingDataPage() {
     const fetchWeighingData = async () => {
       try {
         setLoading(true);
+        setError('');
 
         const url = searchDate
           ? `/api/data-penimbangan?tanggal=${encodeURIComponent(searchDate)}`
@@ -114,7 +126,9 @@ export default function WeighingDataPage() {
         setWeighingData(result);
       } catch (error) {
         console.error('FETCH WEIGHING DATA ERROR:', error);
+
         setWeighingData([]);
+        setError('Gagal mengambil data penimbangan.');
       } finally {
         setLoading(false);
       }
@@ -135,6 +149,88 @@ export default function WeighingDataPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedData(null);
+  };
+
+  // =========================================================
+  // EDIT
+  // =========================================================
+
+  const handleEdit = (data: WeighingCard) => {
+    setSelectedEditData(data);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    if (saving) return;
+
+    setIsEditModalOpen(false);
+    setSelectedEditData(null);
+  };
+
+  // =========================================================
+  // SAVE EDIT
+  // =========================================================
+
+  const handleSaveEdit = async (updatedData: WeighingCard) => {
+    try {
+      setSaving(true);
+      setError('');
+
+      const response = await fetch('/api/data-penimbangan', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: updatedData.id,
+          tanggal: updatedData.tanggal,
+          toleransi: updatedData.toleransi,
+          data: updatedData.data.map((item) => ({
+            id: item.id,
+            lebarMaterial: item.lebarMaterial,
+            ukuran: item.ukuran,
+            ketebalan: item.ketebalan,
+            beratPiece: item.beratPiece,
+            beratTabel: item.beratTabel,
+            toleransi: item.toleransi,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+
+        throw new Error(result?.error || result?.message || 'Gagal menyimpan perubahan data.');
+      }
+
+      // Refresh data setelah berhasil disimpan
+      const url = searchDate
+        ? `/api/data-penimbangan?tanggal=${encodeURIComponent(searchDate)}`
+        : '/api/data-penimbangan';
+
+      const refreshResponse = await fetch(url, {
+        cache: 'no-store',
+      });
+
+      if (!refreshResponse.ok) {
+        throw new Error('Data berhasil diperbarui, tetapi gagal memuat ulang data.');
+      }
+
+      const refreshedData: WeighingCard[] = await refreshResponse.json();
+
+      setWeighingData(refreshedData);
+
+      setIsEditModalOpen(false);
+      setSelectedEditData(null);
+    } catch (error) {
+      console.error('SAVE EDIT ERROR:', error);
+
+      setError(
+        error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan perubahan.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   // =========================================================
@@ -203,8 +299,14 @@ export default function WeighingDataPage() {
           MAIN
       ====================================================== */}
 
-      <main className="pt-16 p-6">
+      <main className="pt-21 p-5">
         <div className="w-full">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
           {loading ? (
             <div className="text-sm text-gray-500">Memuat data penimbangan...</div>
           ) : weighingData.length === 0 ? (
@@ -268,6 +370,7 @@ export default function WeighingDataPage() {
                     <Button
                       variant="warning"
                       size="sm"
+                      onClick={() => handleEdit(data)}
                       className="flex-1 !outline-none !ring-0 !ring-offset-0 focus:!outline-none focus:!ring-0 focus:!ring-offset-0 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0 hover:bg-blue-600"
                     >
                       Edit
@@ -281,7 +384,7 @@ export default function WeighingDataPage() {
       </main>
 
       {/* =====================================================
-          MODAL
+          MODAL VIEW
       ====================================================== */}
 
       <Modal
@@ -300,7 +403,10 @@ export default function WeighingDataPage() {
                 className="bg-emerald-600 text-white hover:bg-emerald-700"
                 onClick={() => {
                   if (selectedData) {
-                    exportToExcel(selectedData);
+                    exportToExcel({
+                      ...selectedData,
+                      data: [...selectedData.data].reverse(),
+                    });
                   }
                 }}
               >
@@ -409,9 +515,7 @@ export default function WeighingDataPage() {
               "
             >
               <table className="w-full min-w-[1050px] border-collapse text-center text-xs">
-                {/* =================================================
-                    TABLE HEADER
-                ================================================== */}
+                {/* TABLE HEADER */}
 
                 <thead className="sticky top-0 z-20 bg-gray-100 shadow-sm">
                   <tr className="border-b border-gray-200">
@@ -451,36 +555,28 @@ export default function WeighingDataPage() {
                   </tr>
                 </thead>
 
-                {/* =================================================
-                    TABLE BODY
-                ================================================== */}
+                {/* TABLE BODY */}
 
                 <tbody>
-                  {selectedData.data.map((item, index) => {
+                  {[...selectedData.data].reverse().map((item, index) => {
                     const tolerance = Number(item.toleransi);
                     const tableWeight = Number(item.beratTabel);
                     const pieceWeight = Number(item.beratPiece);
 
-                    // ============================================
                     // HITUNG BATAS
-                    // ============================================
 
                     const upperLimit = tableWeight + (tableWeight * tolerance) / 100;
 
                     const lowerLimit = tableWeight - (tableWeight * tolerance) / 100;
 
-                    // ============================================
                     // WARNA DIHITUNG ULANG
-                    // ============================================
 
                     const color = calculateColor(pieceWeight, tableWeight, tolerance);
 
                     const isGreen = color === 'Hijau';
                     const isRed = color === 'Merah';
 
-                    // ============================================
                     // ROW COLOR
-                    // ============================================
 
                     const rowColorClass = isGreen
                       ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
@@ -488,9 +584,7 @@ export default function WeighingDataPage() {
                         ? 'bg-red-100 text-red-900 border-red-200'
                         : 'bg-white text-gray-800 border-gray-200';
 
-                    // ============================================
                     // BADGE COLOR
-                    // ============================================
 
                     const badgeColorClass = isGreen
                       ? 'bg-emerald-200 text-emerald-800'
@@ -562,6 +656,17 @@ export default function WeighingDataPage() {
           </div>
         )}
       </Modal>
+
+      {/* =====================================================
+          MODAL EDIT
+      ====================================================== */}
+
+      <EditWeighingModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        data={selectedEditData}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }

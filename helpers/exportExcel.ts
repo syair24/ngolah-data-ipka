@@ -284,7 +284,8 @@ export async function exportToExcel(selectedData: WeighingCard) {
     });
 
     // Format 2 angka desimal
-    row.getCell(1).numFmt = '0.00';
+    // Format angka Excel
+    row.getCell(1).numFmt = '0';
     row.getCell(3).numFmt = '0.00';
     row.getCell(4).numFmt = '0.00';
     row.getCell(5).numFmt = '0.00';

@@ -73,3 +73,30 @@ input[type='number'] {
 .dashboard-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* remove outline chart dashboard */
+/* Hilangkan seluruh outline dan focus border pada chart */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-layer,
+.recharts-cartesian-grid,
+.recharts-cartesian-axis,
+.recharts-cartesian-axis-tick,
+.recharts-line,
+.recharts-dot,
+.recharts-legend-wrapper,
+.recharts-tooltip-wrapper {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}

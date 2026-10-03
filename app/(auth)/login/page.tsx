@@ -41,15 +41,17 @@ export default function LoginPage() {
         return;
       }
 
-      // Simpan username untuk ditampilkan di dashboard
-      sessionStorage.setItem('username', data.user.username);
+      // Simpan username dari akun yang benar-benar berhasil login
+      const loggedInUsername = data.user.username;
 
-      // Setelah login, ganti history /login menjadi /
+      localStorage.setItem('username', loggedInUsername);
+      sessionStorage.setItem('username', loggedInUsername);
+
+      // Setelah login, masuk ke halaman utama
       router.replace('/');
       router.refresh();
     } catch (error) {
       console.error('LOGIN ERROR:', error);
-
       setErrorMessage('Tidak dapat terhubung ke server.');
     } finally {
       setIsLoading(false);
@@ -59,13 +61,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen w-full bg-[#1e40af] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background */}
-      <div className="absolute -top-[250px] -left-[200px] w-[600px] h-[600px] bg-[#2563eb] rounded-full pointer-events-none z-0"></div>
-
-      <div className="absolute -bottom-[200px] -left-[300px] w-[650px] h-[650px] bg-[#3b82f6] rounded-full pointer-events-none z-0 opacity-80"></div>
-
-      <div className="absolute -bottom-[150px] -right-[250px] w-[700px] h-[700px] bg-[#1d4ed8] rounded-full pointer-events-none z-0"></div>
-
-      <div className="absolute top-[10%] -right-[100px] w-[300px] h-[300px] bg-[#2563eb] rounded-full pointer-events-none z-0 opacity-60"></div>
+      <div className="absolute -top-[250px] -left-[200px] w-[600px] h-[600px] bg-[#2563eb] rounded-full pointer-events-none z-0" />
+      <div className="absolute -bottom-[200px] -left-[300px] w-[650px] h-[650px] bg-[#3b82f6] rounded-full pointer-events-none z-0 opacity-80" />
+      <div className="absolute -bottom-[150px] -right-[250px] w-[700px] h-[700px] bg-[#1d4ed8] rounded-full pointer-events-none z-0" />
+      <div className="absolute top-[10%] -right-[100px] w-[300px] h-[300px] bg-[#2563eb] rounded-full pointer-events-none z-0 opacity-60" />
 
       {/* Login */}
       <div className="w-full max-w-sm z-10 text-center px-4">
