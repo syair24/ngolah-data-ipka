@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Lock } from 'lucide-react';
 
@@ -123,14 +122,6 @@ export default function LoginPage() {
             Login
           </Button>
         </form>
-
-        {/* Register */}
-        <p className="text-xs text-blue-200 mt-6">
-          Not a member yet?{' '}
-          <Link href="/register" className="text-blue-400 font-semibold hover:underline">
-            Register!
-          </Link>
-        </p>
       </div>
     </div>
   );
