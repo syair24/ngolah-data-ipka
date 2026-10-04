@@ -107,11 +107,6 @@ export default function LoginPage() {
             className="!bg-transparent !border-blue-300 !text-white !placeholder-blue-200 focus:!border-white"
           />
 
-          {/* Forgot Password */}
-          <div className="text-right">
-            <span>Forgot password?</span>
-          </div>
-
           {/* Login Button */}
           <Button
             type="submit"

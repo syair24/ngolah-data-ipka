@@ -5,8 +5,11 @@ import { useEffect, useState } from 'react';
 import { CalendarDays, FileSpreadsheet, Scale } from 'lucide-react';
 
 import Button from '@/components/Button';
+
 import Modal from '@/components/Modal';
+
 import DatePicker from '@/components/DatePicker';
+
 import EditWeighingModal from '@/components/EditWeighingModal';
 
 import { exportToExcel } from '@/helpers/exportExcel';
@@ -456,10 +459,10 @@ export default function WeighingDataPage() {
 
               {/* HIJAU */}
 
-              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                <span className="text-xs text-emerald-700">Hijau</span>
+              <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                <span className="text-xs text-green-700">Hijau</span>
 
-                <span className="text-xs font-semibold text-emerald-700">
+                <span className="text-xs font-semibold text-green-700">
                   {
                     selectedData.data.filter((item) => {
                       const color = calculateColor(
@@ -577,20 +580,21 @@ export default function WeighingDataPage() {
                     const isRed = color === 'Merah';
 
                     // ROW COLOR
+                    // SAMA DENGAN HALAMAN SELURUH DATA
 
                     const rowColorClass = isGreen
-                      ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
+                      ? 'bg-green-50 text-green-900 border-gray-100'
                       : isRed
-                        ? 'bg-red-100 text-red-900 border-red-200'
-                        : 'bg-white text-gray-800 border-gray-200';
+                        ? 'bg-red-50 text-red-900 border-gray-100'
+                        : 'bg-white text-gray-800 border-gray-100';
 
                     // BADGE COLOR
 
                     const badgeColorClass = isGreen
-                      ? 'bg-emerald-200 text-emerald-800'
+                      ? 'bg-green-100 text-green-800'
                       : isRed
-                        ? 'bg-red-200 text-red-800'
-                        : 'bg-gray-200 text-gray-700';
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-gray-100 text-gray-700';
 
                     return (
                       <tr key={item.id} className={`border-b last:border-b-0 ${rowColorClass}`}>
@@ -630,7 +634,7 @@ export default function WeighingDataPage() {
 
                         {/* -TOLERANSI */}
 
-                        <td className="px-2.5 py-2 font-medium text-emerald-600">
+                        <td className="px-2.5 py-2 font-medium text-green-700">
                           {lowerLimit.toFixed(4)}
                         </td>
 

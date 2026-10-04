@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { Save, X } from 'lucide-react';
 
 import Button from '@/components/Button';
-
 import Modal from '@/components/Modal';
 
 // =========================================================
@@ -75,7 +74,6 @@ function calculateColor(
   tolerance: number
 ): 'Hijau' | 'Putih' | 'Merah' {
   const upper = tableWeight + (tableWeight * tolerance) / 100;
-
   const lower = tableWeight - (tableWeight * tolerance) / 100;
 
   const piece = truncateTwoDecimals(pieceWeight);
@@ -110,9 +108,7 @@ export default function EditWeighingModal({
   onSave,
 }: EditWeighingModalProps) {
   const [draft, setDraft] = useState<EditableCard | null>(null);
-
   const [saving, setSaving] = useState(false);
-
   const [error, setError] = useState('');
 
   // =========================================================
@@ -193,9 +189,7 @@ export default function EditWeighingModal({
           };
 
           const piece = parseNumericValue(updated.beratPiece);
-
           const table = parseNumericValue(updated.beratTabel);
-
           const tolerance = Number(updated.toleransi);
 
           if (Number.isFinite(piece) && Number.isFinite(table) && Number.isFinite(tolerance)) {
@@ -239,9 +233,7 @@ export default function EditWeighingModal({
   const countColor = (color: string) =>
     draft?.data.filter((item) => {
       const piece = parseNumericValue(item.beratPiece);
-
       const table = parseNumericValue(item.beratTabel);
-
       const tolerance = Number(item.toleransi);
 
       if (!Number.isFinite(piece) || !Number.isFinite(table) || !Number.isFinite(tolerance)) {
@@ -260,14 +252,10 @@ export default function EditWeighingModal({
 
     setError('');
 
-    // Validasi jika tidak ada baris data
-
     if (draft.data.length === 0) {
       setError('Data penimbangan tidak boleh kosong.');
       return;
     }
-
-    // Validasi semua kolom wajib diisi
 
     const hasEmptyData = draft.data.some((item) => {
       const requiredValues = [
@@ -286,19 +274,13 @@ export default function EditWeighingModal({
       return;
     }
 
-    // Normalisasi data
-
     const normalizedData: WeighingCard = {
       ...draft,
       data: draft.data.map((item) => {
         const lebarMaterial = parseNumericValue(item.lebarMaterial);
-
         const ketebalan = parseNumericValue(item.ketebalan);
-
         const beratPiece = parseNumericValue(item.beratPiece);
-
         const beratTabel = parseNumericValue(item.beratTabel);
-
         const toleransi = Number(item.toleransi);
 
         const warna =
@@ -317,8 +299,6 @@ export default function EditWeighingModal({
       }),
     };
 
-    // Validasi angka
-
     const hasInvalidData = normalizedData.data.some((item) =>
       [item.lebarMaterial, item.ketebalan, item.beratPiece, item.beratTabel, item.toleransi].some(
         (value) => !Number.isFinite(value) || value < 0
@@ -329,8 +309,6 @@ export default function EditWeighingModal({
       setError('Pastikan semua nilai angka valid dan tidak negatif.');
       return;
     }
-
-    // Validasi ukuran setelah normalisasi
 
     const hasInvalidSize = normalizedData.data.some((item) => !item.ukuran.trim());
 
@@ -343,7 +321,6 @@ export default function EditWeighingModal({
 
     try {
       await onSave(normalizedData);
-
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan perubahan.');
@@ -400,7 +377,7 @@ export default function EditWeighingModal({
               Merah: <b>{countColor('Merah')}</b>
             </span>
 
-            <span className="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-700">
+            <span className="rounded-lg bg-green-50 px-3 py-2 text-green-700">
               Hijau: <b>{countColor('Hijau')}</b>
             </span>
 
@@ -431,7 +408,20 @@ export default function EditWeighingModal({
       }
     >
       <div className="-m-6 flex h-[calc(85vh-73px-76px)] min-h-0 flex-col">
-        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div
+          className="
+            min-w-0
+            flex-1
+            overflow-y-auto
+            overflow-x-hidden
+            [&::-webkit-scrollbar]:w-2
+            [&::-webkit-scrollbar-track]:bg-gray-100
+            [&::-webkit-scrollbar-thumb]:rounded-full
+            [&::-webkit-scrollbar-thumb]:bg-gray-300
+            hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
+            [&::-webkit-scrollbar-button]:hidden
+          "
+        >
           <table className="w-full table-fixed border-collapse text-center text-xs">
             <colgroup>
               <col style={{ width: '5%' }} />
@@ -491,22 +481,26 @@ export default function EditWeighingModal({
                   ? calculateColor(pieceWeight, tableWeight, tolerance)
                   : 'Putih';
 
+                // ROW COLOR
+
                 const rowClass =
                   color === 'Hijau'
-                    ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
+                    ? 'bg-green-50 text-green-900 border-gray-100'
                     : color === 'Merah'
-                      ? 'bg-red-100 text-red-900 border-red-200'
-                      : 'bg-white text-gray-800 border-gray-200';
+                      ? 'bg-red-50 text-red-900 border-gray-100'
+                      : 'bg-white text-gray-800 border-gray-100';
+
+                // BADGE COLOR
 
                 const badgeClass =
                   color === 'Hijau'
-                    ? 'bg-emerald-200 text-emerald-800'
+                    ? 'bg-green-100 text-green-800'
                     : color === 'Merah'
-                      ? 'bg-red-200 text-red-800'
-                      : 'bg-gray-200 text-gray-700';
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-gray-100 text-gray-700';
 
                 return (
-                  <tr key={item.id} className={`border-b border-gray-200 ${rowClass}`}>
+                  <tr key={item.id} className={`border-b last:border-b-0 ${rowClass}`}>
                     <td className="px-1 py-2 text-[11px] font-medium">{index + 1}</td>
 
                     <td className="px-1 py-2">{numericInput(item, 'lebarMaterial')}</td>
@@ -530,7 +524,7 @@ export default function EditWeighingModal({
                       {validCalculation ? upper.toFixed(4) : '-'}
                     </td>
 
-                    <td className="px-1 py-2 text-[10px] font-medium text-emerald-600">
+                    <td className="px-1 py-2 text-[10px] font-medium text-green-700">
                       {validCalculation ? lower.toFixed(4) : '-'}
                     </td>
 
