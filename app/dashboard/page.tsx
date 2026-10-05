@@ -1,9 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-
-import { Scale, TrendingUp, TrendingDown, CheckCircle2 } from 'lucide-react';
-
 import WeightToleranceChart from '@/components/WeightToleranceChart';
 
 interface ProductionData {
@@ -114,10 +111,8 @@ export default function DashboardPage() {
         }
 
         if (mounted) {
-          // Data grup asli untuk grafik bulanan.
           setWeighingGroups(result);
 
-          // Data flat untuk KPI dan tabel dashboard.
           const databaseData: ProductionData[] = result.flatMap((group) =>
             group.data.map((item) => ({
               ...item,
@@ -150,13 +145,24 @@ export default function DashboardPage() {
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
+  /*
+   * ============================================================
+   * DATA BULAN BERJALAN
+   * ============================================================
+   */
   const monthlyData = useMemo(() => {
     return data.filter((item) => {
       const dateValue = item.tanggal || item.dibuatPada;
 
+      if (!dateValue) {
+        return false;
+      }
+
       const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
 
-      if (!match) return false;
+      if (!match) {
+        return false;
+      }
 
       const year = Number(match[1]);
       const month = Number(match[2]) - 1;
@@ -165,21 +171,43 @@ export default function DashboardPage() {
     });
   }, [data, currentMonth, currentYear]);
 
+  /*
+   * ============================================================
+   * SORT DATA TERBARU
+   *
+   * Prioritas:
+   * 1. Tanggal produksi terbaru
+   * 2. Waktu dibuat/input terbaru
+   *
+   * DESCENDING -> terbaru berada di index 0
+   * ============================================================
+   */
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) => {
       const dateA = a.tanggal || '';
       const dateB = b.tanggal || '';
 
-      const dateDifference = dateA.localeCompare(dateB);
+      // Tanggal terbaru terlebih dahulu
+      const dateDifference = dateB.localeCompare(dateA);
 
       if (dateDifference !== 0) {
         return dateDifference;
       }
 
-      return new Date(a.dibuatPada).getTime() - new Date(b.dibuatPada).getTime();
+      // Kalau tanggal sama,
+      // data yang dibuat paling baru berada di atas
+      const createdA = new Date(a.dibuatPada).getTime();
+      const createdB = new Date(b.dibuatPada).getTime();
+
+      return createdB - createdA;
     });
   }, [data]);
 
+  /*
+   * ============================================================
+   * TANGGAL DATA TERBARU
+   * ============================================================
+   */
   const tanggalTerbaru = useMemo(() => {
     if (sortedData.length === 0) {
       return null;
@@ -188,6 +216,15 @@ export default function DashboardPage() {
     return sortedData[0].tanggal;
   }, [sortedData]);
 
+  /*
+   * ============================================================
+   * LATEST PRODUCTION DATA
+   *
+   * Ambil semua data yang mempunyai tanggal produksi terbaru.
+   * Urutannya tetap mengikuti sortedData:
+   * data yang paling baru dibuat berada paling atas.
+   * ============================================================
+   */
   const latestDateData = useMemo(() => {
     if (!tanggalTerbaru) {
       return [];
@@ -196,6 +233,11 @@ export default function DashboardPage() {
     return sortedData.filter((item) => item.tanggal === tanggalTerbaru);
   }, [sortedData, tanggalTerbaru]);
 
+  /*
+   * ============================================================
+   * KPI
+   * ============================================================
+   */
   const totalData = monthlyData.length;
 
   const diAtasToleransi = monthlyData.filter(
@@ -210,6 +252,11 @@ export default function DashboardPage() {
 
   const periodeBulan = `${getMonthName(currentMonth)} ${currentYear}`;
 
+  /*
+   * ============================================================
+   * LOADING
+   * ============================================================
+   */
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -240,6 +287,11 @@ export default function DashboardPage() {
     );
   }
 
+  /*
+   * ============================================================
+   * DASHBOARD
+   * ============================================================
+   */
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
@@ -254,7 +306,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="pt-13 px-3">
+      <main className="px-3 pt-20">
         {error && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
             <p className="text-sm text-red-600">{error}</p>

@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
-  Line,
-  LineChart,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -70,7 +71,24 @@ function getDayLabel(day: number, month: number, year: number) {
   return `${String(day).padStart(2, '0')} ${dayName}`;
 }
 
+function getStatusLabel(warna: ProductionData['warna']) {
+  if (warna === 'Merah') {
+    return 'Di atas toleransi';
+  }
+
+  if (warna === 'Hijau') {
+    return 'Di bawah toleransi';
+  }
+
+  return 'Sesuai toleransi';
+}
+
 export default function WeightToleranceChart({ data }: WeightToleranceChartProps) {
+  /*
+   * ============================================================
+   * TANGGAL TERBARU
+   * ============================================================
+   */
   const latestDate = useMemo(() => {
     return (
       data
@@ -80,6 +98,11 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     );
   }, [data]);
 
+  /*
+   * ============================================================
+   * TAHUN TERSEDIA
+   * ============================================================
+   */
   const availableYears = useMemo(() => {
     const years = data.map((group) => getYear(group.tanggalISO)).filter((year) => year > 0);
 
@@ -89,7 +112,11 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
   const [selectedMonth, setSelectedMonth] = useState(0);
   const [selectedYear, setSelectedYear] = useState(0);
 
-  // Otomatis memilih bulan dan tahun dari data terbaru.
+  /*
+   * ============================================================
+   * SET FILTER BERDASARKAN DATA TERBARU
+   * ============================================================
+   */
   useEffect(() => {
     if (!latestDate) return;
 
@@ -97,18 +124,34 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     setSelectedYear(getYear(latestDate));
   }, [latestDate]);
 
+  /*
+   * ============================================================
+   * JUMLAH HARI DALAM BULAN
+   * ============================================================
+   */
   const daysInMonth =
     selectedMonth > 0 && selectedYear > 0 ? new Date(selectedYear, selectedMonth, 0).getDate() : 0;
 
+  /*
+   * ============================================================
+   * FILTER GROUP SESUAI BULAN DAN TAHUN
+   * ============================================================
+   */
   const monthlyGroups = useMemo(() => {
     return data.filter((group) => {
       const date = group.tanggalISO;
+
+      if (!date) return false;
 
       return getMonth(date) === selectedMonth && getYear(date) === selectedYear;
     });
   }, [data, selectedMonth, selectedYear]);
 
-  // Membuat seluruh tanggal dalam bulan terpilih.
+  /*
+   * ============================================================
+   * DATA PER HARI
+   * ============================================================
+   */
   const chartData = useMemo(() => {
     const dailyData = Array.from({ length: daysInMonth }, (_, index) => ({
       hari: index + 1,
@@ -120,7 +163,9 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     monthlyGroups.forEach((group) => {
       const day = Number(group.tanggalISO.slice(8, 10));
 
-      if (day < 1 || day > daysInMonth) return;
+      if (day < 1 || day > daysInMonth) {
+        return;
+      }
 
       const current = dailyData[day - 1];
 
@@ -138,6 +183,11 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     return dailyData;
   }, [monthlyGroups, daysInMonth]);
 
+  /*
+   * ============================================================
+   * TOTAL
+   * ============================================================
+   */
   const totalMerah = chartData.reduce((total, item) => total + item.diAtas, 0);
 
   const totalHijau = chartData.reduce((total, item) => total + item.diBawah, 0);
@@ -148,15 +198,49 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
 
   const hasData = totalData > 0;
 
+  /*
+   * ============================================================
+   * MAX DATA UNTUK SCALE Y-AXIS
+   * ============================================================
+   */
+  const maxDailyValue = useMemo(() => {
+    if (chartData.length === 0) return 0;
+
+    return Math.max(...chartData.map((item) => Math.max(item.diAtas, item.diBawah, item.sesuai)));
+  }, [chartData]);
+
+  /*
+   * Tambahkan ruang di atas batang supaya angka tidak terpotong.
+   */
+  const yAxisMax = useMemo(() => {
+    if (maxDailyValue <= 0) return 5;
+
+    if (maxDailyValue <= 5) {
+      return maxDailyValue + 2;
+    }
+
+    if (maxDailyValue <= 10) {
+      return maxDailyValue + 3;
+    }
+
+    if (maxDailyValue <= 20) {
+      return maxDailyValue + 5;
+    }
+
+    return Math.ceil(maxDailyValue * 1.2);
+  }, [maxDailyValue]);
+
   return (
     <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      {/* Header */}
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Weight Tolerance Analytics</h3>
 
           <p className="mt-1 text-sm text-gray-500">
-            Tren harian hasil penimbangan berdasarkan status toleransi
+            Grafik harian hasil penimbangan berdasarkan status toleransi
           </p>
 
           <p className="mt-2 text-xs font-medium text-blue-600">
@@ -164,7 +248,9 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
           </p>
         </div>
 
-        {/* Filter Bulan dan Tahun */}
+        {/* ====================================================
+            FILTER
+        ==================================================== */}
         <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2.5">
           <div className="w-36">
             <label className="mb-1.5 block text-xs font-medium text-gray-500">Bulan</label>
@@ -172,7 +258,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
             <select
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(Number(event.target.value))}
-              className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-300 focus:ring-0 focus:outline-none"
+              className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-300 focus:outline-none focus:ring-0"
             >
               {MONTHS.map((month, index) => (
                 <option key={month} value={index + 1}>
@@ -188,7 +274,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
             <select
               value={selectedYear}
               onChange={(event) => setSelectedYear(Number(event.target.value))}
-              className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-300 focus:ring-0 focus:outline-none"
+              className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-300 focus:outline-none focus:ring-0"
             >
               {availableYears.map((year) => (
                 <option key={year} value={year}>
@@ -204,8 +290,15 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
         </div>
       </div>
 
+      {/* ======================================================
+          EMPTY STATE
+      ====================================================== */}
       {!hasData ? (
-        <div className="flex h-[320px] flex-col items-center justify-center text-center">
+        <div className="flex h-[380px] flex-col items-center justify-center text-center">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+            <span className="text-xl text-gray-400">—</span>
+          </div>
+
           <p className="text-sm font-medium text-gray-600">
             Belum ada data pada bulan yang dipilih.
           </p>
@@ -214,22 +307,27 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
         </div>
       ) : (
         <>
-          {/* Chart */}
-          <div className="h-[380px] w-full">
-            <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
-              <LineChart
+          {/* ==================================================
+              CHART
+          ================================================== */}
+          <div className="h-[420px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
                 data={chartData}
                 margin={{
-                  top: 15,
-                  right: 15,
-                  left: 0,
-                  bottom: 25,
+                  top: 30,
+                  right: 20,
+                  left: 5,
+                  bottom: 35,
                 }}
-                style={{ outline: 'none' }}
-                tabIndex={-1}
+                barGap={2}
+                barCategoryGap="18%"
               >
-                <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" vertical={true} />
+                <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" vertical={false} />
 
+                {/* ==================================================
+                    X AXIS
+                ================================================== */}
                 <XAxis
                   dataKey="hari"
                   type="number"
@@ -247,27 +345,41 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   tickLine={false}
                   angle={-45}
                   textAnchor="end"
-                  height={65}
+                  height={75}
                   label={{
                     value: 'Tanggal',
                     position: 'insideBottom',
-                    offset: -2,
+                    offset: -8,
                     fill: '#9ca3af',
                     fontSize: 11,
                   }}
                 />
 
+                {/* ==================================================
+                    Y AXIS
+                ================================================== */}
                 <YAxis
+                  domain={[0, yAxisMax]}
                   allowDecimals={false}
                   tick={{
                     fill: '#6b7280',
-                    fontSize: 12,
+                    fontSize: 11,
                   }}
                   axisLine={false}
                   tickLine={false}
-                  width={35}
+                  width={40}
+                  label={{
+                    value: 'Jumlah Data',
+                    angle: -90,
+                    position: 'insideLeft',
+                    fill: '#9ca3af',
+                    fontSize: 11,
+                  }}
                 />
 
+                {/* ==================================================
+                    TOOLTIP
+                ================================================== */}
                 <Tooltip
                   labelFormatter={(label) =>
                     `Tanggal ${getDayLabel(
@@ -279,118 +391,251 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '13px',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.08)',
+                    fontSize: '12px',
+                    padding: '10px 12px',
                   }}
                   labelStyle={{
                     color: '#111827',
                     fontWeight: 600,
-                    marginBottom: 6,
+                    marginBottom: 7,
                   }}
-                  formatter={(value, name) => [`${value ?? 0} data`, name]}
+                  itemStyle={{
+                    padding: '2px 0',
+                  }}
+                  formatter={(value, name) => [
+                    `${Number(value ?? 0).toLocaleString('id-ID')} data`,
+                    name,
+                  ]}
                 />
 
+                {/* ==================================================
+                    LEGEND
+                ================================================== */}
                 <Legend
                   verticalAlign="top"
                   align="right"
                   iconType="circle"
                   wrapperStyle={{
                     fontSize: '12px',
-                    paddingBottom: '20px',
+                    paddingBottom: '25px',
                   }}
                 />
 
-                <Line
-                  type="monotone"
+                {/* ==================================================
+                    BAR DI ATAS TOLERANSI
+                ================================================== */}
+                <Bar
                   dataKey="diAtas"
                   name="Di atas toleransi (+%)"
-                  stroke="#ef4444"
-                  strokeWidth={2}
-                  dot={{
-                    r: 3,
-                    fill: '#ef4444',
-                    strokeWidth: 1,
-                  }}
-                  activeDot={{ r: 5 }}
-                />
+                  fill="#ef4444"
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={28}
+                >
+                  <LabelList
+                    dataKey="diAtas"
+                    position="top"
+                    formatter={(value) => (Number(value) > 0 ? value : '')}
+                    fill="#dc2626"
+                    fontSize={10}
+                    fontWeight={600}
+                  />
+                </Bar>
 
-                <Line
-                  type="monotone"
+                {/* ==================================================
+                    BAR DI BAWAH TOLERANSI
+                ================================================== */}
+                <Bar
                   dataKey="diBawah"
                   name="Di bawah toleransi (-%)"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={{
-                    r: 3,
-                    fill: '#10b981',
-                    strokeWidth: 1,
-                  }}
-                  activeDot={{ r: 5 }}
-                />
+                  fill="#10b981"
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={28}
+                >
+                  <LabelList
+                    dataKey="diBawah"
+                    position="top"
+                    formatter={(value) => (Number(value) > 0 ? value : '')}
+                    fill="#059669"
+                    fontSize={10}
+                    fontWeight={600}
+                  />
+                </Bar>
 
-                <Line
-                  type="monotone"
+                {/* ==================================================
+                    BAR SESUAI TOLERANSI
+                ================================================== */}
+                <Bar
                   dataKey="sesuai"
                   name="Sesuai toleransi"
-                  stroke="#8b5cf6"
-                  strokeWidth={2}
-                  dot={{
-                    r: 3,
-                    fill: '#8b5cf6',
-                    strokeWidth: 1,
-                  }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
+                  fill="#8b5cf6"
+                  radius={[5, 5, 0, 0]}
+                  maxBarSize={28}
+                >
+                  <LabelList
+                    dataKey="sesuai"
+                    position="top"
+                    formatter={(value) => (Number(value) > 0 ? value : '')}
+                    fill="#7c3aed"
+                    fontSize={10}
+                    fontWeight={600}
+                  />
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Keterangan Periode */}
+          {/* ======================================================
+              INFO PERIODE
+          ====================================================== */}
           <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-3">
-            <p className="text-xs text-gray-500">
-              Periode grafik:
-              <span className="ml-1 font-semibold text-gray-700">
-                {MONTHS[selectedMonth - 1]} {selectedYear}
-              </span>
-            </p>
+            <div>
+              <p className="text-xs text-gray-500">
+                Periode grafik:
+                <span className="ml-1 font-semibold text-gray-700">
+                  {MONTHS[selectedMonth - 1]} {selectedYear}
+                </span>
+              </p>
+            </div>
 
             <p className="text-xs text-gray-400">{daysInMonth} hari</p>
           </div>
 
-          {/* Summary */}
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-              <p className="text-xs text-gray-500">Total Data</p>
+          {/* ======================================================
+              SUMMARY CARDS
+          ====================================================== */}
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {/* TOTAL */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-gray-500">Total Data</p>
 
-              <p className="mt-1 text-xl font-semibold text-gray-900">
+                <span className="text-xs font-medium text-gray-400">ALL</span>
+              </div>
+
+              <p className="mt-2 text-2xl font-bold text-gray-900">
                 {totalData.toLocaleString('id-ID')}
               </p>
+
+              <p className="mt-1 text-xs text-gray-400">Seluruh data periode</p>
             </div>
 
-            <div className="rounded-lg border border-red-100 bg-red-50 p-3">
-              <p className="text-xs text-red-600">Di atas toleransi</p>
+            {/* MERAH */}
+            <div className="rounded-xl border border-red-100 bg-red-50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-red-600">Di atas toleransi</p>
 
-              <p className="mt-1 text-xl font-semibold text-red-600">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+              </div>
+
+              <p className="mt-2 text-2xl font-bold text-red-600">
                 {totalMerah.toLocaleString('id-ID')}
               </p>
+
+              <p className="mt-1 text-xs text-red-400">Melebihi batas toleransi</p>
             </div>
 
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
-              <p className="text-xs text-emerald-700">Di bawah toleransi</p>
+            {/* HIJAU */}
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-emerald-700">Di bawah toleransi</p>
 
-              <p className="mt-1 text-xl font-semibold text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              </div>
+
+              <p className="mt-2 text-2xl font-bold text-emerald-700">
                 {totalHijau.toLocaleString('id-ID')}
               </p>
+
+              <p className="mt-1 text-xs text-emerald-500">Di bawah batas toleransi</p>
             </div>
 
-            <div className="rounded-lg border border-violet-100 bg-violet-50 p-3">
-              <p className="text-xs text-violet-700">Sesuai toleransi</p>
+            {/* PUTIH */}
+            <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-violet-700">Sesuai toleransi</p>
 
-              <p className="mt-1 text-xl font-semibold text-violet-700">
+                <span className="h-2 w-2 rounded-full bg-violet-500" />
+              </div>
+
+              <p className="mt-2 text-2xl font-bold text-violet-700">
                 {totalPutih.toLocaleString('id-ID')}
               </p>
+
+              <p className="mt-1 text-xs text-violet-500">Berada dalam batas toleransi</p>
             </div>
           </div>
+
+          {/* ======================================================
+              DETAIL PERSENTASE
+          ====================================================== */}
+          {totalData > 0 && (
+            <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-700">Distribusi Data</p>
+
+                <p className="text-xs text-gray-400">
+                  Total {totalData.toLocaleString('id-ID')} data
+                </p>
+              </div>
+
+              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
+                {totalMerah > 0 && (
+                  <div
+                    className="bg-red-500 transition-all"
+                    style={{
+                      width: `${(totalMerah / totalData) * 100}%`,
+                    }}
+                  />
+                )}
+
+                {totalHijau > 0 && (
+                  <div
+                    className="bg-emerald-500 transition-all"
+                    style={{
+                      width: `${(totalHijau / totalData) * 100}%`,
+                    }}
+                  />
+                )}
+
+                {totalPutih > 0 && (
+                  <div
+                    className="bg-violet-500 transition-all"
+                    style={{
+                      width: `${(totalPutih / totalData) * 100}%`,
+                    }}
+                  />
+                )}
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-[11px] text-gray-400">Di atas</p>
+
+                  <p className="text-sm font-semibold text-red-600">
+                    {((totalMerah / totalData) * 100).toFixed(1)}%
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-gray-400">Di bawah</p>
+
+                  <p className="text-sm font-semibold text-emerald-600">
+                    {((totalHijau / totalData) * 100).toFixed(1)}%
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[11px] text-gray-400">Sesuai</p>
+
+                  <p className="text-sm font-semibold text-violet-600">
+                    {((totalPutih / totalData) * 100).toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
