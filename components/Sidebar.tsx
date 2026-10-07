@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-
 import {
   LayoutDashboard,
   FileText,
@@ -12,6 +11,7 @@ import {
   CalendarDays,
   List,
   ChevronDown,
+  Info,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -19,7 +19,6 @@ export default function Sidebar() {
   const router = useRouter();
 
   const isDataPage = currentPath.startsWith('/data-penimbangan');
-
   const [isDataOpen, setIsDataOpen] = useState(isDataPage);
 
   const menuList = [
@@ -37,6 +36,11 @@ export default function Sidebar() {
       name: 'Pengaturan',
       path: '/pengaturan',
       icon: Settings,
+    },
+    {
+      name: 'Tentang',
+      path: '/tentang',
+      icon: Info,
     },
   ];
 
@@ -78,7 +82,7 @@ export default function Sidebar() {
 
       {/* MENU */}
       <nav className="flex-1 space-y-1">
-        {/* MENU UTAMA */}
+        {/* DASHBOARD & DATA MASUK */}
         {menuList.slice(0, 2).map((menu) => {
           const isCurrentActive = currentPath === menu.path;
           const IconComponent = menu.icon;
@@ -94,12 +98,13 @@ export default function Sidebar() {
               }`}
             >
               <IconComponent size={17} strokeWidth={1.8} />
+
               <span>{menu.name}</span>
             </Link>
           );
         })}
 
-        {/* DROPDOWN DATA PENIMBANGAN */}
+        {/* DATA PENIMBANGAN */}
         <div>
           <button
             type="button"
@@ -110,6 +115,7 @@ export default function Sidebar() {
           >
             <span className="flex items-center gap-3">
               <Scale size={17} strokeWidth={1.8} />
+
               <span>Data Penimbangan</span>
             </span>
 
@@ -138,6 +144,7 @@ export default function Sidebar() {
                     }`}
                   >
                     <IconComponent size={16} strokeWidth={1.8} />
+
                     <span>{menu.name}</span>
                   </Link>
                 );
@@ -147,7 +154,7 @@ export default function Sidebar() {
         </div>
 
         {/* PENGATURAN */}
-        {menuList.slice(2).map((menu) => {
+        {menuList.slice(2, 3).map((menu) => {
           const isCurrentActive = currentPath === menu.path;
           const IconComponent = menu.icon;
 
@@ -162,6 +169,29 @@ export default function Sidebar() {
               }`}
             >
               <IconComponent size={17} strokeWidth={1.8} />
+
+              <span>{menu.name}</span>
+            </Link>
+          );
+        })}
+
+        {/* TENTANG */}
+        {menuList.slice(3).map((menu) => {
+          const isCurrentActive = currentPath === menu.path;
+          const IconComponent = menu.icon;
+
+          return (
+            <Link
+              key={menu.path}
+              href={menu.path}
+              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
+                isCurrentActive
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+              }`}
+            >
+              <IconComponent size={17} strokeWidth={1.8} />
+
               <span>{menu.name}</span>
             </Link>
           );
