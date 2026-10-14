@@ -2,41 +2,17 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
-interface WeighingItem {
-  id: number;
-  tanggal: string;
-  lebarMaterial: number;
-  ukuran: string;
-  ketebalan: number;
-  beratPiece: number;
-  beratTabel: number;
-  toleransi: number;
-  warna: 'Hijau' | 'Putih' | 'Merah';
-  dibuatPada: string;
-}
+import {
+  type WeighingItem,
+  type ApiGroup,
+  formatDecimal,
+  formatTanggal,
+  normalizeText,
+  normalizeNumber,
+  getRowColor,
+} from '@/lib/seluruhData-helpers';
 
-interface ApiGroup {
-  id: number;
-  tanggal: string;
-  tanggalISO: string;
-  toleransi: number;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-  } | null;
-  data: {
-    id: number;
-    lebarMaterial: number;
-    ukuran: string;
-    ketebalan: number;
-    beratPiece: number;
-    beratTabel: number;
-    toleransi: number;
-    warna: 'Hijau' | 'Putih' | 'Merah';
-    dibuatPada: string;
-  }[];
-}
+import ToggleAllDatesButton from '@/components/ToggleAllDatesButton';
 
 export default function SeluruhDataPage() {
   const [data, setData] = useState<WeighingItem[]>([]);
@@ -49,6 +25,7 @@ export default function SeluruhDataPage() {
 
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
 
+  // Mengambil data dari API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -96,46 +73,6 @@ export default function SeluruhDataPage() {
 
     fetchData();
   }, []);
-
-  // Format angka selalu 2 angka desimal
-  const formatDecimal = (value: number) => {
-    return Number(value).toFixed(2);
-  };
-
-  // Format tanggal
-  const formatTanggal = (tanggal: string) => {
-    const date = new Date(`${tanggal}T00:00:00`);
-
-    return date.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
-
-  // Normalisasi teks ukuran:
-  // Huruf besar/kecil dianggap sama.
-  // Semua jenis spasi dihapus.
-  // Karakter selain huruf dan angka tetap dipertahankan.
-  const normalizeText = (value: string) => {
-    return String(value ?? '')
-      .normalize('NFKC')
-      .toLocaleLowerCase('id-ID')
-      .replace(/[\s\u00A0\u2000-\u200B\u202F\u205F\u3000]+/g, '');
-  };
-
-  // Normalisasi angka:
-  // 0.50 = 0.5 = 0,50
-  const normalizeNumber = (value: string | number) => {
-    const normalized = String(value).trim().replace(',', '.');
-    const number = Number(normalized);
-
-    if (!Number.isFinite(number)) {
-      return normalized;
-    }
-
-    return number.toString();
-  };
 
   // Filter data
   const filteredData = useMemo(() => {
@@ -201,17 +138,16 @@ export default function SeluruhDataPage() {
     });
   };
 
-  // Warna baris berdasarkan status
-  const getRowColor = (warna: WeighingItem['warna']) => {
-    switch (warna) {
-      case 'Hijau':
-        return 'bg-green-50';
+  // Cek apakah semua kelompok tanggal sudah terbuka
+  const allDatesExpanded =
+    groupedData.length > 0 && groupedData.every((group) => expandedDates.has(group.tanggal));
 
-      case 'Merah':
-        return 'bg-red-50';
-
-      default:
-        return 'bg-white';
+  // Buka/tutup semua kelompok tanggal
+  const toggleAllDates = () => {
+    if (allDatesExpanded) {
+      setExpandedDates(new Set());
+    } else {
+      setExpandedDates(new Set(groupedData.map((group) => group.tanggal)));
     }
   };
 
@@ -219,12 +155,18 @@ export default function SeluruhDataPage() {
     <>
       {/* Header */}
       <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
-        <div className="flex h-full items-center px-5">
+        <div className="flex h-full items-center justify-between px-5">
           <h1 className="text-base font-semibold text-gray-900">Seluruh Data Penimbangan</h1>
+
+          <ToggleAllDatesButton
+            allExpanded={allDatesExpanded}
+            disabled={groupedData.length === 0}
+            onClick={toggleAllDates}
+          />
         </div>
       </header>
 
-      {/* Main: memenuhi area layar di bawah header */}
+      {/* Main */}
       <main className="fixed inset-x-0 bottom-0 left-[220px] top-16 overflow-hidden bg-gray-50 p-5">
         <div className="flex h-full min-h-0 flex-col">
           {/* Table Container */}
@@ -273,7 +215,7 @@ export default function SeluruhDataPage() {
 
                 {/* Filter */}
                 <tr className="bg-white">
-                  <th className="border-b border-gray-200 bg-white px-2 py-2"></th>
+                  <th className="border-b border-gray-200 bg-white px-2 py-2" />
 
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
                     <input
@@ -305,11 +247,9 @@ export default function SeluruhDataPage() {
                     />
                   </th>
 
-                  <th className="border-b border-gray-200 bg-white px-2 py-2"></th>
-
-                  <th className="border-b border-gray-200 bg-white px-2 py-2"></th>
-
-                  <th className="border-b border-gray-200 bg-white px-2 py-2"></th>
+                  <th className="border-b border-gray-200 bg-white px-2 py-2" />
+                  <th className="border-b border-gray-200 bg-white px-2 py-2" />
+                  <th className="border-b border-gray-200 bg-white px-2 py-2" />
                 </tr>
               </thead>
 
@@ -346,6 +286,7 @@ export default function SeluruhDataPage() {
                             <button
                               type="button"
                               onClick={() => toggleDate(group.tanggal)}
+                              aria-expanded={isExpanded}
                               className="flex w-full items-center justify-start gap-2 text-left"
                             >
                               <span className="flex h-5 w-5 items-center justify-center rounded text-blue-700">

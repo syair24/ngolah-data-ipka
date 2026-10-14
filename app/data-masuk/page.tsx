@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Plus, RotateCcw, Save, Trash2, GripVertical } from 'lucide-react';
 
@@ -19,8 +19,40 @@ interface InputItem {
 
 type InputField = 'materialWidth' | 'size' | 'thickness' | 'pieceWeight' | 'tableWeight';
 
+interface InputDraft {
+  data: InputItem[];
+  date: string;
+  tolerance: string;
+}
+
+const STORAGE_KEY = 'data-masuk-draft';
+
 const createRowId = () => {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
+const loadDraft = (): InputDraft | null => {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+
+    if (!saved) {
+      return null;
+    }
+
+    const draft = JSON.parse(saved) as InputDraft;
+
+    if (
+      !Array.isArray(draft.data) ||
+      typeof draft.date !== 'string' ||
+      typeof draft.tolerance !== 'string'
+    ) {
+      return null;
+    }
+
+    return draft;
+  } catch {
+    return null;
+  }
 };
 
 export default function InputDataPage() {
@@ -39,6 +71,9 @@ export default function InputDataPage() {
   // MODAL RESET
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
+  // DRAFT
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const autoScrollRef = useRef<number | null>(null);
   const dragClientYRef = useRef<number | null>(null);
@@ -48,6 +83,50 @@ export default function InputDataPage() {
   const toleranceValue = Number(tolerance) || 0;
 
   const recordsCount = useMemo(() => data.length, [data]);
+
+  // =========================================================
+  // RESTORE DRAFT
+  // =========================================================
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const draft = loadDraft();
+
+      if (draft) {
+        setData(draft.data);
+        setDate(draft.date);
+        setTolerance(draft.tolerance);
+      }
+
+      setDraftLoaded(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  // =========================================================
+  // AUTO-SAVE DRAFT
+  // =========================================================
+
+  useEffect(() => {
+    if (!draftLoaded) {
+      return;
+    }
+
+    try {
+      const draft: InputDraft = {
+        data,
+        date,
+        tolerance,
+      };
+
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    } catch (error) {
+      console.error('Gagal menyimpan draft Data Masuk:', error);
+    }
+  }, [data, date, tolerance, draftLoaded]);
 
   // =========================================================
   // INPUT HELPERS
@@ -126,6 +205,15 @@ export default function InputDataPage() {
 
   const confirmReset = () => {
     resetData();
+    setDate('');
+    setTolerance('');
+
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Gagal menghapus draft Data Masuk:', error);
+    }
+
     setIsResetConfirmOpen(false);
   };
 
@@ -339,6 +427,15 @@ export default function InputDataPage() {
       }
 
       setData([]);
+      setDate('');
+      setTolerance('');
+
+      try {
+        sessionStorage.removeItem(STORAGE_KEY);
+      } catch (error) {
+        console.error('Gagal menghapus draft Data Masuk:', error);
+      }
+
       setIsConfirmOpen(false);
     } catch (error) {
       console.error('Gagal save data masuk:', error);
@@ -557,10 +654,8 @@ export default function InputDataPage() {
 
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={handleResetClick}
-              className="h-9 gap-2 rounded-xl border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
+              className="h-9 gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 transition-colors hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
             >
               <RotateCcw size={14} />
               Reset
@@ -569,10 +664,8 @@ export default function InputDataPage() {
             <Button
               type="button"
               onClick={handleSaveClick}
-              variant="outline"
-              size="sm"
               disabled={isSaving}
-              className="!h-9 !gap-2 !rounded-xl !border-emerald-200 !bg-emerald-50 !px-3.5 !text-xs !font-medium !text-emerald-600 hover:!border-emerald-300 hover:!bg-emerald-100 hover:!text-emerald-700"
+              className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Save size={15} />
               {isSaving ? 'Menyimpan...' : 'Simpan Data'}
@@ -580,10 +673,8 @@ export default function InputDataPage() {
 
             <Button
               type="button"
-              variant="primary"
-              size="sm"
               onClick={addRow}
-              className="h-9 gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-500"
+              className="h-9 gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
             >
               <Plus size={15} strokeWidth={2.5} />
               Tambah Data
@@ -645,15 +736,12 @@ export default function InputDataPage() {
 
                   if (item.pieceWeight !== '' && item.tableWeight !== '') {
                     if (truncatedPiece > truncatedUpper) {
-                      // Lebih dari batas atas (+) -> Merah
                       color = 'Merah';
                       colorClass = 'border-red-200 bg-red-50 text-red-700 ';
                     } else if (truncatedPiece < truncatedLower) {
-                      // Kurang dari batas bawah (-) -> Hijau
                       color = 'Hijau';
                       colorClass = 'border-emerald-200 bg-emerald-50 text-emerald-700';
                     } else {
-                      // Di dalam rentang -> Putih
                       color = 'Putih';
                       colorClass = 'border-gray-200 bg-gray-50 text-gray-700';
                     }
@@ -763,6 +851,7 @@ export default function InputDataPage() {
                       <td className="px-2 py-2 font-medium text-red-600">
                         {upperLimit.toFixed(4)}
                       </td>
+
                       <td className="px-2 py-2 font-medium text-emerald-600">
                         {lowerLimit.toFixed(4)}
                       </td>
@@ -792,9 +881,7 @@ export default function InputDataPage() {
                             onClick={() => removeRow(index)}
                             title="Hapus data"
                             aria-label={`Hapus data baris ${index + 1}`}
-                            variant="outline"
-                            size="sm"
-                            className="!h-8 !w-8 !shrink-0 !rounded-lg !border-red-200 !bg-red-50 !p-0 !text-red-600 hover:!border-red-300 hover:!bg-red-100 hover:!text-red-700"
+                            className="h-8 w-8 shrink-0 rounded-lg border border-red-200 bg-red-50 p-0 text-red-600 transition-colors hover:border-red-300 hover:bg-red-100 hover:text-red-700"
                           >
                             <Trash2 size={20} strokeWidth={2.2} />
                           </Button>
@@ -835,6 +922,7 @@ export default function InputDataPage() {
             <span className={`text-xs ${saveError ? 'text-red-600' : 'text-gray-500'}`}>
               {saveError || 'Data akan tersimpan ke database setelah tombol Simpan Data ditekan.'}
             </span>
+
             <span className="text-xs font-medium text-gray-700">Total: {data.length}</span>
           </div>
         </div>
@@ -851,19 +939,16 @@ export default function InputDataPage() {
           <div className="flex items-center justify-end gap-3">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={() => setIsConfirmOpen(false)}
               disabled={isSaving}
+              className="rounded-md border border-gray-300 bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Batal
             </Button>
 
             <Button
               type="button"
-              variant="primary"
-              size="sm"
-              className="!h-9 !gap-2 !rounded-xl !border-emerald-200 !bg-emerald-50 !px-3.5 !text-xs !font-medium !text-emerald-600 hover:!border-emerald-300 hover:!bg-emerald-100 hover:!text-emerald-700"
+              className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isSaving}
               onClick={async () => {
                 await saveData();
@@ -879,7 +964,9 @@ export default function InputDataPage() {
           <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">
             <Save size={27} />
           </div>
+
           <h3 className="mb-3 text-base font-semibold text-gray-900">Konfirmasi Data</h3>
+
           <p className="max-w-sm text-sm leading-6 text-gray-600">
             Apakah tanggal dan data yang Anda masukkan sudah benar?
           </p>
@@ -897,19 +984,16 @@ export default function InputDataPage() {
           <div className="flex items-center justify-end gap-3">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={() => setIsResetConfirmOpen(false)}
+              className="rounded-md border border-gray-300 bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
             >
               Batal
             </Button>
 
             <Button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={confirmReset}
-              className="!h-9 !gap-2 !rounded-xl !border-orange-200 !bg-orange-50 !px-3.5 !text-xs !font-medium !text-orange-600 hover:!border-orange-300 hover:!bg-orange-100 hover:!text-orange-700"
+              className="h-9 gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 transition-colors hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
             >
               <RotateCcw size={15} />
               Ya, Reset
@@ -921,7 +1005,9 @@ export default function InputDataPage() {
           <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-orange-200 bg-orange-50 text-orange-600">
             <RotateCcw size={27} />
           </div>
+
           <h3 className="mb-3 text-base font-semibold text-gray-900">Konfirmasi Reset</h3>
+
           <p className="max-w-sm text-sm leading-6 text-gray-600">
             Apakah Anda yakin ingin mereset semua data yang sudah dimasukkan?
           </p>

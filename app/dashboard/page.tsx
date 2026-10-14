@@ -1,326 +1,73 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
 import WeightToleranceChart from '@/components/WeightToleranceChart';
 
-interface ProductionData {
-  id: number;
-  tanggal: string;
-  lebarMaterial: number;
-  ukuran: string;
-  ketebalan: number;
-  beratPiece: number;
-  beratTabel: number;
-  toleransi: number;
-  warna: 'Hijau' | 'Putih' | 'Merah';
-  dibuatPada: string;
-}
-
-interface ApiGroup {
-  id: number;
-  tanggal: string;
-  tanggalISO: string;
-  toleransi: number;
-  user?: {
-    id: number;
-    username: string;
-    email: string;
-  } | null;
-  data: ProductionData[];
-}
-
-function getStatus(item: ProductionData) {
-  if (item.warna === 'Hijau') {
-    return 'Di bawah toleransi';
-  }
-
-  if (item.warna === 'Merah') {
-    return 'Di atas toleransi';
-  }
-
-  return 'Sesuai';
-}
-
-function getMonthName(month: number) {
-  const months = [
-    'Januari',
-    'Februari',
-    'Maret',
-    'April',
-    'Mei',
-    'Juni',
-    'Juli',
-    'Agustus',
-    'September',
-    'Oktober',
-    'November',
-    'Desember',
-  ];
-
-  return months[month];
-}
-
-function formatDate(value: string) {
-  if (!value) return '-';
-
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
-
-  if (match) {
-    const [, year, month, day] = match;
-    return `${day}-${month}-${year}`;
-  }
-
-  return value;
-}
+import {
+  formatDate,
+  getStatus,
+  useDashboardData,
+  useDashboardUsername,
+} from '@/lib/dashboard-helpers';
 
 export default function DashboardPage() {
-  const [data, setData] = useState<ProductionData[]>([]);
-  const [weighingGroups, setWeighingGroups] = useState<ApiGroup[]>([]);
+  const { weighingGroups, loading, error, tanggalTerbaru, latestDateData } = useDashboardData();
 
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const username = useDashboardUsername();
 
-  useEffect(() => {
-    let mounted = true;
-
-    const savedUsername = sessionStorage.getItem('username') || localStorage.getItem('username');
-
-    if (savedUsername?.trim()) {
-      setUsername(savedUsername.trim());
-    }
-
-    async function loadData() {
-      try {
-        setLoading(true);
-        setError('');
-
-        const response = await fetch('/api/data-penimbangan', {
-          method: 'GET',
-          cache: 'no-store',
-        });
-
-        if (!response.ok) {
-          throw new Error(`Gagal mengambil data. Status: ${response.status}`);
-        }
-
-        const result: ApiGroup[] = await response.json();
-
-        if (!Array.isArray(result)) {
-          throw new Error('Format data dari API tidak valid.');
-        }
-
-        if (mounted) {
-          setWeighingGroups(result);
-
-          const databaseData: ProductionData[] = result.flatMap((group) =>
-            group.data.map((item) => ({
-              ...item,
-              tanggal: group.tanggalISO || group.tanggal,
-            }))
-          );
-
-          setData(databaseData);
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err instanceof Error ? err.message : 'Gagal mengambil data dari database.');
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const now = new Date();
-
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-
-  /*
-   * ============================================================
-   * DATA BULAN BERJALAN
-   * ============================================================
-   */
-  const monthlyData = useMemo(() => {
-    return data.filter((item) => {
-      const dateValue = item.tanggal || item.dibuatPada;
-
-      if (!dateValue) {
-        return false;
-      }
-
-      const match = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
-
-      if (!match) {
-        return false;
-      }
-
-      const year = Number(match[1]);
-      const month = Number(match[2]) - 1;
-
-      return month === currentMonth && year === currentYear;
-    });
-  }, [data, currentMonth, currentYear]);
-
-  /*
-   * ============================================================
-   * SORT DATA TERBARU
-   *
-   * Prioritas:
-   * 1. Tanggal produksi terbaru
-   * 2. Waktu dibuat/input terbaru
-   *
-   * DESCENDING -> terbaru berada di index 0
-   * ============================================================
-   */
-  const sortedData = useMemo(() => {
-    return [...data].sort((a, b) => {
-      const dateA = a.tanggal || '';
-      const dateB = b.tanggal || '';
-
-      // Tanggal terbaru terlebih dahulu
-      const dateDifference = dateB.localeCompare(dateA);
-
-      if (dateDifference !== 0) {
-        return dateDifference;
-      }
-
-      // Kalau tanggal sama,
-      // data yang dibuat paling baru berada di atas
-      const createdA = new Date(a.dibuatPada).getTime();
-      const createdB = new Date(b.dibuatPada).getTime();
-
-      return createdB - createdA;
-    });
-  }, [data]);
-
-  /*
-   * ============================================================
-   * TANGGAL DATA TERBARU
-   * ============================================================
-   */
-  const tanggalTerbaru = useMemo(() => {
-    if (sortedData.length === 0) {
-      return null;
-    }
-
-    return sortedData[0].tanggal;
-  }, [sortedData]);
-
-  /*
-   * ============================================================
-   * LATEST PRODUCTION DATA
-   *
-   * Ambil semua data yang mempunyai tanggal produksi terbaru.
-   * Urutannya tetap mengikuti sortedData:
-   * data yang paling baru dibuat berada paling atas.
-   * ============================================================
-   */
-  const latestDateData = useMemo(() => {
-    if (!tanggalTerbaru) {
-      return [];
-    }
-
-    return sortedData.filter((item) => item.tanggal === tanggalTerbaru);
-  }, [sortedData, tanggalTerbaru]);
-
-  /*
-   * ============================================================
-   * KPI
-   * ============================================================
-   */
-  const totalData = monthlyData.length;
-
-  const diAtasToleransi = monthlyData.filter(
-    (item) => getStatus(item) === 'Di atas toleransi'
-  ).length;
-
-  const diBawahToleransi = monthlyData.filter(
-    (item) => getStatus(item) === 'Di bawah toleransi'
-  ).length;
-
-  const sesuaiToleransi = monthlyData.filter((item) => getStatus(item) === 'Sesuai').length;
-
-  const periodeBulan = `${getMonthName(currentMonth)} ${currentYear}`;
-
-  /*
-   * ============================================================
-   * LOADING
-   * ============================================================
-   */
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
+        <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
           <div className="flex h-full items-center justify-between px-6">
             <h1 className="text-lg font-semibold text-gray-900">Production Dashboard</h1>
 
             <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
-              <span className="text-sm font-medium leading-none text-emerald-700">
+              <span className="text-sm font-medium text-emerald-700">
                 {username || 'Memuat akun...'}
               </span>
             </div>
           </div>
         </header>
 
-        <main className="pt-16">
-          <div className="p-6">
-            <div className="flex h-[500px] items-center justify-center">
-              <div className="text-center">
-                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+        <main className="px-3 pt-20">
+          <div className="flex min-h-64 flex-col items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
 
-                <p className="mt-4 text-sm text-gray-500">Memuat data dari database...</p>
-              </div>
-            </div>
+            <p className="mt-4 text-sm text-gray-500">Memuat data dari database...</p>
           </div>
         </main>
       </div>
     );
   }
 
-  /*
-   * ============================================================
-   * DASHBOARD
-   * ============================================================
-   */
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
+      <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
         <div className="flex h-full items-center justify-between px-6">
           <h1 className="text-lg font-semibold text-gray-900">Production Dashboard</h1>
 
           <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
-            <span className="text-sm font-medium leading-none text-emerald-700">
-              {username || 'Akun tidak ditemukan'}
-            </span>
+            <span className="text-sm font-medium text-emerald-700">{username || 'err'}</span>
           </div>
         </div>
       </header>
 
-      <main className="px-3 pt-20">
+      <main className="px-3 pt-13">
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-sm text-red-600">{error}</p>
+          <div
+            role="alert"
+            className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+          >
+            {error}
           </div>
         )}
 
-        {/* Monthly Chart */}
         <WeightToleranceChart data={weighingGroups} />
 
-        {/* Latest Production Data */}
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Latest Production Data</h3>
+              <h2 className="text-lg font-semibold text-gray-900">Latest Production Data</h2>
 
               <p className="mt-1 text-sm text-gray-500">
                 {tanggalTerbaru
@@ -329,74 +76,47 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="shrink-0">
-              <span className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs text-gray-700">
-                {latestDateData.length} data
-              </span>
-            </div>
+            <span className="shrink-0 rounded-lg border border-gray-200 bg-gray-100 px-3 py-1.5 text-xs text-gray-700">
+              {latestDateData.length} data
+            </span>
           </div>
 
-          <div className="dashboard-scrollbar h-[420px] overflow-x-auto overflow-y-auto rounded-lg border border-gray-200">
-            <table className="w-full min-w-[900px] border-collapse text-sm">
+          <div className="dashboard-scrollbar overflow-auto rounded-lg border border-gray-200">
+            <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-20 bg-gray-100">
                 <tr className="border-b border-gray-200 text-center text-xs font-medium uppercase text-gray-600">
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">No</th>
-
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
-                    Lebar Material
-                  </th>
-
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">Ukuran</th>
-
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
-                    Ketebalan
-                  </th>
-
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
-                    Berat Kg/Btg
-                  </th>
-
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
-                    Berat Tabel
-                  </th>
-
-                  <th className="whitespace-nowrap px-3 py-3 font-medium text-gray-600">
-                    Toleransi
-                  </th>
+                  <th className="whitespace-nowrap px-3 py-3">No</th>
+                  <th className="whitespace-nowrap px-3 py-3">Lebar Material</th>
+                  <th className="whitespace-nowrap px-3 py-3">Ukuran</th>
+                  <th className="whitespace-nowrap px-3 py-3">Ketebalan</th>
+                  <th className="whitespace-nowrap px-3 py-3">Berat Kg/Btg</th>
+                  <th className="whitespace-nowrap px-3 py-3">Berat Tabel</th>
+                  <th className="whitespace-nowrap px-3 py-3">Toleransi</th>
                 </tr>
               </thead>
 
               <tbody>
                 {latestDateData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center">
-                      <div>
-                        <p className="text-sm text-gray-500">Belum ada data penimbangan.</p>
-
-                        <p className="mt-1 text-xs text-gray-400">
-                          Data yang lo input akan muncul di sini.
-                        </p>
-                      </div>
+                    <td colSpan={7} className="py-16 text-center text-gray-500">
+                      Belum ada data penimbangan.
                     </td>
                   </tr>
                 ) : (
                   latestDateData.map((item, index) => {
                     const status = getStatus(item);
 
-                    let rowClass = '';
-
-                    if (status === 'Di bawah toleransi') {
-                      rowClass = 'bg-emerald-50 hover:bg-emerald-100/60';
-                    } else if (status === 'Di atas toleransi') {
-                      rowClass = 'bg-red-50 hover:bg-red-100/60';
-                    } else {
-                      rowClass = 'bg-white hover:bg-gray-50';
-                    }
+                    const rowClass =
+                      status === 'Di bawah toleransi'
+                        ? 'bg-emerald-50 hover:bg-emerald-100/60'
+                        : status === 'Di atas toleransi'
+                          ? 'bg-red-50 hover:bg-red-100/60'
+                          : 'bg-white hover:bg-gray-50';
 
                     return (
                       <tr
                         key={item.id}
-                        className={`${rowClass} border-b border-gray-200 transition`}
+                        className={`${rowClass} border-b border-gray-200 transition-colors`}
                       >
                         <td className="whitespace-nowrap px-3 py-3 text-center text-gray-500">
                           {index + 1}
@@ -432,7 +152,7 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );

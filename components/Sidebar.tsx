@@ -12,6 +12,7 @@ import {
   List,
   ChevronDown,
   Info,
+  Ruler,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -31,6 +32,11 @@ export default function Sidebar() {
       name: 'Data Masuk',
       path: '/data-masuk',
       icon: FileText,
+    },
+    {
+      name: 'Coil Length Calculator',
+      path: '/coilLength',
+      icon: Ruler,
     },
     {
       name: 'Pengaturan',
@@ -82,8 +88,8 @@ export default function Sidebar() {
 
       {/* MENU */}
       <nav className="flex-1 space-y-1">
-        {/* DASHBOARD & DATA MASUK */}
-        {menuList.slice(0, 2).map((menu) => {
+        {/* DASHBOARD, DATA MASUK & COIL LENGTH CALCULATOR */}
+        {menuList.slice(0, 3).map((menu) => {
           const isCurrentActive = currentPath === menu.path;
           const IconComponent = menu.icon;
 
@@ -154,7 +160,7 @@ export default function Sidebar() {
         </div>
 
         {/* PENGATURAN */}
-        {menuList.slice(2, 3).map((menu) => {
+        {menuList.slice(3, 4).map((menu) => {
           const isCurrentActive = currentPath === menu.path;
           const IconComponent = menu.icon;
 
@@ -176,7 +182,7 @@ export default function Sidebar() {
         })}
 
         {/* TENTANG */}
-        {menuList.slice(3).map((menu) => {
+        {menuList.slice(4).map((menu) => {
           const isCurrentActive = currentPath === menu.path;
           const IconComponent = menu.icon;
 

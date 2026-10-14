@@ -387,18 +387,21 @@ export default function EditWeighingModal({
           </div>
 
           <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
+            <Button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="border border-gray-300 bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+            >
               <X size={15} className="mr-1.5" />
               Batal
             </Button>
 
             <Button
-              variant="primary"
-              size="sm"
-              isLoading={saving}
+              type="button"
               onClick={handleSave}
               disabled={saving || !isDirty}
-              className="bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-sm text-white hover:border-emerald-700 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Save size={15} className="mr-1.5" />
               {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
