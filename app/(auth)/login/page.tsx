@@ -104,17 +104,17 @@ export default function LoginPage() {
             }}
             required
             icon={<Lock className="h-5 w-5" />}
-            className="!bg-transparent !border-blue-300 !text-white !placeholder-blue-200 focus:!border-white"
+            className="bg-transparent border-blue-300 text-white placeholder-blue-200 focus:border-white"
           />
 
           {/* Login Button */}
+
           <Button
             type="submit"
-            variant="outline"
-            isLoading={isLoading}
-            className="w-full py-3.5 !border-green-500 !text-green-400 hover:!bg-green-500 hover:!text-white focus:!ring-green-400 rounded-xl font-semibold transition-all duration-300 mt-2"
+            disabled={isLoading}
+            className="w-full py-3.5 border border-green-500 text-green-400 bg-transparent hover:bg-green-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-xl font-semibold transition-colors duration-200 mt-2"
           >
-            Login
+            {isLoading ? 'Memproses...' : 'Login'}
           </Button>
         </form>
       </div>
