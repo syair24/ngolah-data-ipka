@@ -11,65 +11,49 @@ import {
   CalendarDays,
   List,
   ChevronDown,
+  Menu,
+  X,
   Info,
   Ruler,
+  LogOut,
+  type LucideIcon,
 } from 'lucide-react';
 import Button from '@/components/Button';
+import { useSidebar } from '@/app/layout';
+
+interface MenuItem {
+  name: string;
+  path: string;
+  icon: LucideIcon;
+}
 
 export default function Sidebar() {
+  const { isSidebarOpen, setIsSidebarOpen } = useSidebar();
   const currentPath = usePathname();
   const router = useRouter();
 
   const isDataPage = currentPath.startsWith('/data-penimbangan');
   const [isDataOpen, setIsDataOpen] = useState(isDataPage);
 
-  const menuList = [
-    {
-      name: 'Dashboard',
-      path: '/dashboard',
-      icon: LayoutDashboard,
-    },
-    {
-      name: 'Data Masuk',
-      path: '/data-masuk',
-      icon: FileText,
-    },
-    {
-      name: 'Coil Length Calculator',
-      path: '/coilLength',
-      icon: Ruler,
-    },
-    {
-      name: 'Pengaturan',
-      path: '/pengaturan',
-      icon: Settings,
-    },
-    {
-      name: 'Tentang',
-      path: '/tentang',
-      icon: Info,
-    },
+  const mainMenus: MenuItem[] = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Data Masuk', path: '/data-masuk', icon: FileText },
+    { name: 'Coil Length Calculator', path: '/coilLength', icon: Ruler },
   ];
 
-  const dataSubmenu = [
-    {
-      name: 'Rekap Harian',
-      path: '/data-penimbangan',
-      icon: CalendarDays,
-    },
-    {
-      name: 'Seluruh Data',
-      path: '/data-penimbangan/seluruh-data',
-      icon: List,
-    },
+  const bottomMenus: MenuItem[] = [
+    { name: 'Pengaturan', path: '/pengaturan', icon: Settings },
+    { name: 'Tentang', path: '/tentang', icon: Info },
+  ];
+
+  const dataSubmenu: MenuItem[] = [
+    { name: 'Rekap Harian', path: '/data-penimbangan', icon: CalendarDays },
+    { name: 'Seluruh Data', path: '/data-penimbangan/seluruh-data', icon: List },
   ];
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', {
-        method: 'POST',
-      });
-
+      await fetch('/api/logout', { method: 'POST' });
       router.replace('/login');
       router.refresh();
     } catch (error) {
@@ -78,78 +62,102 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[220px] flex-col border-r border-gray-200 bg-white px-3 py-5 md:flex">
-      {/* LOGO */}
-      <div className="mb-8 px-2">
-        <h1 className="text-sm font-bold leading-5 tracking-wide text-blue-600">
-          Production Control
-          <span className="block text-gray-700">System</span>
-        </h1>
+    <aside
+      className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-gray-200 bg-white py-5 transition-[width] duration-200 ease-in-out md:flex ${
+        isSidebarOpen ? 'w-55 px-3' : 'w-17.5 px-2'
+      }`}
+    >
+      <div
+        className={`mb-8 flex items-center ${
+          isSidebarOpen ? 'justify-between px-2' : 'justify-center px-0'
+        }`}
+      >
+        {isSidebarOpen && (
+          <h1 className="text-sm font-bold leading-5 tracking-wide text-blue-600 truncate">
+            Production Control
+          </h1>
+        )}
+
+        <Button
+          type="button"
+          onClick={() => setIsSidebarOpen((prev) => !prev)}
+          className="flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
+          title={isSidebarOpen ? 'Tutup Sidebar' : 'Buka Sidebar'}
+        >
+          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </Button>
       </div>
 
-      {/* MENU */}
-      <nav className="flex-1 space-y-1">
-        {/* DASHBOARD, DATA MASUK & COIL LENGTH CALCULATOR */}
-        {menuList.slice(0, 3).map((menu) => {
-          const isCurrentActive = currentPath === menu.path;
+      <nav className="flex-1 space-y-1 overflow-y-auto overflow-x-hidden">
+        {mainMenus.map((menu) => {
+          const isActive = currentPath === menu.path;
           const IconComponent = menu.icon;
 
           return (
             <Link
               key={menu.path}
               href={menu.path}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                isCurrentActive
+              title={!isSidebarOpen ? menu.name : undefined}
+              className={`flex items-center rounded-lg py-2.5 text-[13px] font-medium transition-colors ${
+                isSidebarOpen ? 'px-3 gap-3 justify-start' : 'px-0 justify-center'
+              } ${
+                isActive
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              <IconComponent size={17} strokeWidth={1.8} />
-              <span>{menu.name}</span>
+              <IconComponent size={18} strokeWidth={1.8} className="shrink-0" />
+              {isSidebarOpen && <span className="truncate">{menu.name}</span>}
             </Link>
           );
         })}
 
-        {/* DATA PENIMBANGAN */}
         <div>
           <button
             type="button"
-            onClick={() => setIsDataOpen((prev) => !prev)}
-            className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-              isDataPage ? 'text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            }`}
+            onClick={() => {
+              if (!isSidebarOpen) setIsSidebarOpen(true);
+              setIsDataOpen((prev) => !prev);
+            }}
+            title={!isSidebarOpen ? 'Data Penimbangan' : undefined}
+            className={`flex w-full items-center rounded-lg py-2.5 text-[13px] font-medium transition-colors ${
+              isSidebarOpen ? 'px-3 justify-between' : 'px-0 justify-center'
+            } ${isDataPage ? 'text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}
           >
-            <span className="flex items-center gap-3">
-              <Scale size={17} strokeWidth={1.8} />
-              <span>Data Penimbangan</span>
+            <span
+              className={`flex items-center ${isSidebarOpen ? 'gap-3' : 'justify-center w-full'}`}
+            >
+              <Scale size={18} strokeWidth={1.8} className="shrink-0" />
+              {isSidebarOpen && <span className="truncate">Data Penimbangan</span>}
             </span>
 
-            <ChevronDown
-              size={15}
-              strokeWidth={1.8}
-              className={`transition-transform duration-200 ${isDataOpen ? 'rotate-180' : ''}`}
-            />
+            {isSidebarOpen && (
+              <ChevronDown
+                size={15}
+                strokeWidth={1.8}
+                className={`transition-transform duration-200 ${isDataOpen ? 'rotate-180' : ''}`}
+              />
+            )}
           </button>
 
-          {/* SUBMENU */}
-          {isDataOpen && (
+          {isSidebarOpen && isDataOpen && (
             <div className="ml-5 mt-1 space-y-1 border-l border-gray-200 pl-3">
-              {dataSubmenu.map((menu) => {
-                const IconComponent = menu.icon;
-                const isActive = currentPath === menu.path;
+              {dataSubmenu.map((sub) => {
+                const isSubActive = currentPath === sub.path;
+                const SubIcon = sub.icon;
 
                 return (
                   <Link
-                    key={menu.path}
-                    href={menu.path}
+                    key={sub.path}
+                    href={sub.path}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[12px] font-medium transition-colors ${
-                      isActive
+                      isSubActive
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                     }`}
                   >
-                    <IconComponent size={16} strokeWidth={1.8} />
-                    <span>{menu.name}</span>
+                    <SubIcon size={16} strokeWidth={1.8} className="shrink-0" />
+                    <span className="truncate">{sub.name}</span>
                   </Link>
                 );
               })}
@@ -157,57 +165,41 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* PENGATURAN */}
-        {menuList.slice(3, 4).map((menu) => {
-          const isCurrentActive = currentPath === menu.path;
+        {bottomMenus.map((menu) => {
+          const isActive = currentPath === menu.path;
           const IconComponent = menu.icon;
 
           return (
             <Link
               key={menu.path}
               href={menu.path}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                isCurrentActive
+              title={!isSidebarOpen ? menu.name : undefined}
+              className={`flex items-center rounded-lg py-2.5 text-[13px] font-medium transition-colors ${
+                isSidebarOpen ? 'px-3 gap-3 justify-start' : 'px-0 justify-center'
+              } ${
+                isActive
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
               }`}
             >
-              <IconComponent size={17} strokeWidth={1.8} />
-              <span>{menu.name}</span>
-            </Link>
-          );
-        })}
-
-        {/* TENTANG */}
-        {menuList.slice(4).map((menu) => {
-          const isCurrentActive = currentPath === menu.path;
-          const IconComponent = menu.icon;
-
-          return (
-            <Link
-              key={menu.path}
-              href={menu.path}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${
-                isCurrentActive
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-            >
-              <IconComponent size={17} strokeWidth={1.8} />
-              <span>{menu.name}</span>
+              <IconComponent size={18} strokeWidth={1.8} className="shrink-0" />
+              {isSidebarOpen && <span className="truncate">{menu.name}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* KELUAR */}
-      <div className="border-t border-gray-200 pt-4">
+      <div className="border-t border-gray-200 pt-4 px-1">
         <Button
           type="button"
           onClick={handleLogout}
-          className="w-full cursor-pointer rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-center text-[13px] font-medium text-red-600 transition-colors duration-200 hover:bg-red-100 hover:text-red-700"
+          title={!isSidebarOpen ? 'Keluar' : undefined}
+          className={`w-full flex items-center cursor-pointer rounded-lg border border-red-200 bg-red-50 py-2.5 text-[13px] font-medium text-red-600 transition-colors duration-200 hover:bg-red-100 hover:text-red-700 ${
+            isSidebarOpen ? 'px-3 gap-3 justify-start' : 'justify-center px-0'
+          }`}
         >
-          Keluar
+          <LogOut size={18} strokeWidth={1.8} className="shrink-0" />
+          {isSidebarOpen && <span className="truncate">Keluar</span>}
         </Button>
       </div>
     </aside>

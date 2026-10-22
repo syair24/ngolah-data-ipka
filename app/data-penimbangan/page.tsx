@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
 import { CalendarDays, FileSpreadsheet, Scale } from 'lucide-react';
 
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import DatePicker from '@/components/DatePicker';
 import EditWeighingModal from '@/components/EditWeighingModal';
+import Navbar from '@/components/Navbar';
+import { useSidebar } from '@/app/layout';
 
 import { exportToExcel } from '@/lib/exportExcel';
 
@@ -18,6 +19,8 @@ import {
 } from '@/lib/dataPenimbangan-helpers';
 
 export default function WeighingDataPage() {
+  const { isSidebarOpen } = useSidebar();
+
   const [weighingData, setWeighingData] = useState<WeighingCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -178,6 +181,51 @@ export default function WeighingDataPage() {
   };
 
   // =========================================================
+  // DELETE ALL
+  // =========================================================
+  const handleDeleteAll = async (selectedData: WeighingCard) => {
+    const ids = selectedData.data.map((item) => item.id);
+
+    if (ids.length === 0) {
+      throw new Error('Tidak ada data yang bisa dihapus.');
+    }
+
+    const response = await fetch('/api/data-penimbangan', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        tanggal: selectedData.tanggal,
+        ids,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Gagal menghapus data.');
+    }
+
+    // Muat ulang daftar setelah data berhasil dihapus.
+    const url = searchDate
+      ? `/api/data-penimbangan?tanggal=${encodeURIComponent(searchDate)}`
+      : '/api/data-penimbangan';
+
+    const refreshResponse = await fetch(url, {
+      cache: 'no-store',
+    });
+
+    if (!refreshResponse.ok) {
+      throw new Error('Data berhasil dihapus, tetapi daftar gagal diperbarui. Muat ulang halaman.');
+    }
+
+    setWeighingData(await refreshResponse.json());
+    setSelectedEditData(null);
+    setIsEditModalOpen(false);
+  };
+
+  // =========================================================
   // MODAL TITLE
   // =========================================================
 
@@ -190,44 +238,42 @@ export default function WeighingDataPage() {
   // =========================================================
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* HEADER */}
-      <header className="fixed top-0 left-55 right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
-        <div className="flex h-full items-center justify-between gap-6 px-6">
-          <div className="flex shrink-0 items-center">
-            <h1 className="text-lg font-semibold text-gray-900">Data Penimbangan</h1>
+    <div
+      className={`min-h-screen bg-gray-50 transition-[padding] duration-200 ease-in-out ${
+        isSidebarOpen ? 'md:pl-5' : 'md:pl-5'
+      }`}
+    >
+      {/* NAVBAR REUSABLE */}
+      <Navbar title="Data Penimbangan">
+        <div className="flex shrink-0 items-center gap-4">
+          <div className="w-55">
+            <div className="flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-3 py-2">
+              <span className="text-xs font-medium text-gray-600">Tanggal</span>
+
+              <DatePicker
+                value={searchDate}
+                onChange={setSearchDate}
+                className="w-36 [&_input]:h-7 [&_input]:py-0"
+              />
+            </div>
           </div>
 
-          <div className="flex shrink-0 items-center gap-4">
-            <div className="w-[220px]">
-              <div className="flex items-center gap-2 rounded-xl border border-gray-300 bg-gray-50 px-3 py-2">
-                <span className="text-xs font-medium text-gray-600">Tanggal</span>
-
-                <DatePicker
-                  value={searchDate}
-                  onChange={setSearchDate}
-                  className="w-36 [&_input]:h-7 [&_input]:py-0"
-                />
-              </div>
+          <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+              <Scale size={15} />
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                <Scale size={15} />
-              </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold text-gray-900">{weighingData.length}</span>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-gray-900">{weighingData.length}</span>
-
-                <span className="text-xs text-gray-500">Data</span>
-              </div>
+              <span className="text-xs text-gray-500">Data</span>
             </div>
           </div>
         </div>
-      </header>
+      </Navbar>
 
       {/* MAIN */}
-      <main className="pt-21 p-5">
+      <main className="pt-23 pr-5">
         <div className="w-full">
           {error && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -398,7 +444,7 @@ export default function WeighingDataPage() {
         {selectedData && (
           <div className="-m-6 flex h-[calc(85vh-73px-76px)] flex-col">
             <div className="relative flex-1 overflow-x-auto overflow-y-auto [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-button]:hidden">
-              <table className="w-full min-w-[1050px] border-collapse text-center text-xs">
+              <table className="w-full min-w-262.5 border-collapse text-center text-xs">
                 <thead className="sticky top-0 z-20 bg-gray-100 shadow-sm">
                   <tr className="border-b border-gray-200">
                     <th className="px-2.5 py-3 text-center font-semibold text-gray-700">No</th>
@@ -458,7 +504,7 @@ export default function WeighingDataPage() {
                       <tr key={item.id} className={`border-b last:border-b-0 ${rowColorClass}`}>
                         <td className="px-2.5 py-2 font-medium">{index + 1}</td>
                         <td className="px-2.5 py-2 font-medium">
-                          {Number(item.lebarMaterial).toFixed(2)}
+                          {Math.round(Number(item.lebarMaterial))}
                         </td>
                         <td className="px-2.5 py-2 font-medium">{item.ukuran}</td>
                         <td className="px-2.5 py-2 font-medium">
@@ -496,6 +542,7 @@ export default function WeighingDataPage() {
         onClose={handleCloseEditModal}
         data={selectedEditData}
         onSave={handleSaveEdit}
+        onDeleteAll={handleDeleteAll}
       />
     </div>
   );

@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-import { Plus, RotateCcw, Save, Trash2, GripVertical } from 'lucide-react';
+import { Plus, RotateCcw, Save, Trash2, GripVertical, AlertCircle } from 'lucide-react';
 
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import DatePicker from '@/components/DatePicker';
+import Navbar from '@/components/Navbar';
+import { useSidebar } from '@/app/layout';
 
 interface InputItem {
   id: string;
@@ -18,6 +19,8 @@ interface InputItem {
 }
 
 type InputField = 'materialWidth' | 'size' | 'thickness' | 'pieceWeight' | 'tableWeight';
+
+const FIELDS: InputField[] = ['materialWidth', 'size', 'thickness', 'pieceWeight', 'tableWeight'];
 
 interface InputDraft {
   data: InputItem[];
@@ -56,6 +59,8 @@ const loadDraft = (): InputDraft | null => {
 };
 
 export default function InputDataPage() {
+  const { isSidebarOpen } = useSidebar();
+
   const [data, setData] = useState<InputItem[]>([]);
   const [date, setDate] = useState<string>('');
   const [tolerance, setTolerance] = useState<string>('');
@@ -260,7 +265,7 @@ export default function InputDataPage() {
   };
 
   // =========================================================
-  // ENTER KEY
+  // KEYBOARD NAVIGATION
   // =========================================================
 
   const handleInputKeyDown = (
@@ -268,57 +273,133 @@ export default function InputDataPage() {
     rowIndex: number,
     field: InputField
   ) => {
-    if (e.key !== 'Enter') {
+    const fieldIndex = FIELDS.indexOf(field);
+
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (fieldIndex < FIELDS.length - 1) {
+        focusInput(rowIndex, FIELDS[fieldIndex + 1]);
+      } else if (rowIndex < data.length - 1) {
+        focusInput(rowIndex + 1, FIELDS[0]);
+      }
       return;
     }
 
-    e.preventDefault();
-
-    if (field === 'materialWidth') {
-      focusInput(rowIndex, 'size');
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      if (fieldIndex > 0) {
+        focusInput(rowIndex, FIELDS[fieldIndex - 1]);
+      } else if (rowIndex > 0) {
+        focusInput(rowIndex - 1, FIELDS[FIELDS.length - 1]);
+      }
       return;
     }
 
-    if (field === 'size') {
-      focusInput(rowIndex, 'thickness');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (rowIndex < data.length - 1) {
+        focusInput(rowIndex + 1, field);
+      }
       return;
     }
 
-    if (field === 'thickness') {
-      focusInput(rowIndex, 'pieceWeight');
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (rowIndex > 0) {
+        focusInput(rowIndex - 1, field);
+      }
       return;
     }
 
-    if (field === 'pieceWeight') {
-      focusInput(rowIndex, 'tableWeight');
-      return;
-    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
 
-    if (field === 'tableWeight') {
-      const newRowId = createRowId();
+      if (fieldIndex < FIELDS.length - 1) {
+        focusInput(rowIndex, FIELDS[fieldIndex + 1]);
+      } else {
+        const newRowId = createRowId();
 
-      setData((prev) => [
-        ...prev,
-        {
-          id: newRowId,
-          materialWidth: '',
-          size: '',
-          thickness: '',
-          pieceWeight: '',
-          tableWeight: '',
-        },
-      ]);
+        setData((prev) => [
+          ...prev,
+          {
+            id: newRowId,
+            materialWidth: '',
+            size: '',
+            thickness: '',
+            pieceWeight: '',
+            tableWeight: '',
+          },
+        ]);
 
-      setSaveError('');
+        setSaveError('');
 
-      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          const input = inputRefs.current[`${newRowId}-materialWidth`];
-
-          input?.focus();
+          requestAnimationFrame(() => {
+            focusInput(data.length, 'materialWidth');
+          });
         });
-      });
+      }
     }
+  };
+
+  // =========================================================
+  // VALIDASI SEBELUM SAVE
+  // =========================================================
+
+  const validateData = () => {
+    if (!date) {
+      return 'Tanggal wajib diisi.';
+    }
+
+    if (tolerance.trim() === '' || !isValidNonNegativeNumber(tolerance)) {
+      return 'Toleransi wajib diisi dan tidak boleh minus.';
+    }
+
+    if (data.length === 0) {
+      return 'Belum ada data untuk disimpan.';
+    }
+
+    for (let index = 0; index < data.length; index++) {
+      const item = data[index];
+
+      if (item.materialWidth.trim() === '') {
+        return `Lebar Material pada baris ${index + 1} wajib diisi.`;
+      }
+
+      if (item.size.trim() === '') {
+        return `Ukuran pada baris ${index + 1} wajib diisi.`;
+      }
+
+      if (item.thickness.trim() === '') {
+        return `Ketebalan pada baris ${index + 1} wajib diisi.`;
+      }
+
+      if (item.pieceWeight.trim() === '') {
+        return `Berat Piece pada baris ${index + 1} wajib diisi.`;
+      }
+
+      if (item.tableWeight.trim() === '') {
+        return `Berat Tabel pada baris ${index + 1} wajib diisi.`;
+      }
+
+      if (!isValidNonNegativeNumber(item.materialWidth)) {
+        return `Lebar Material pada baris ${index + 1} tidak valid.`;
+      }
+
+      if (!isValidNonNegativeNumber(item.thickness)) {
+        return `Ketebalan pada baris ${index + 1} tidak valid.`;
+      }
+
+      if (!isValidNonNegativeNumber(item.pieceWeight)) {
+        return `Berat Piece pada baris ${index + 1} tidak valid.`;
+      }
+
+      if (!isValidNonNegativeNumber(item.tableWeight)) {
+        return `Berat Tabel pada baris ${index + 1} tidak valid.`;
+      }
+    }
+
+    return null;
   };
 
   // =========================================================
@@ -326,88 +407,24 @@ export default function InputDataPage() {
   // =========================================================
 
   const saveData = async () => {
-    setSaveError('');
-
-    if (!date) {
-      setSaveError('Tanggal wajib diisi.');
+    const errorMsg = validateData();
+    if (errorMsg) {
+      setSaveError(errorMsg);
       return;
-    }
-
-    if (tolerance.trim() === '' || !isValidNonNegativeNumber(tolerance)) {
-      setSaveError('Toleransi wajib diisi dan tidak boleh minus.');
-      return;
-    }
-
-    if (data.length === 0) {
-      setSaveError('Belum ada data untuk disimpan.');
-      return;
-    }
-
-    for (let index = 0; index < data.length; index++) {
-      const item = data[index];
-
-      if (item.materialWidth.trim() === '') {
-        setSaveError(`Lebar Material pada baris ${index + 1} wajib diisi.`);
-        return;
-      }
-
-      if (item.size.trim() === '') {
-        setSaveError(`Ukuran pada baris ${index + 1} wajib diisi.`);
-        return;
-      }
-
-      if (item.thickness.trim() === '') {
-        setSaveError(`Ketebalan pada baris ${index + 1} wajib diisi.`);
-        return;
-      }
-
-      if (item.pieceWeight.trim() === '') {
-        setSaveError(`Berat Piece pada baris ${index + 1} wajib diisi.`);
-        return;
-      }
-
-      if (item.tableWeight.trim() === '') {
-        setSaveError(`Berat Tabel pada baris ${index + 1} wajib diisi.`);
-        return;
-      }
-
-      if (!isValidNonNegativeNumber(item.materialWidth)) {
-        setSaveError(`Lebar Material pada baris ${index + 1} tidak valid.`);
-        return;
-      }
-
-      if (!isValidNonNegativeNumber(item.thickness)) {
-        setSaveError(`Ketebalan pada baris ${index + 1} tidak valid.`);
-        return;
-      }
-
-      if (!isValidNonNegativeNumber(item.pieceWeight)) {
-        setSaveError(`Berat Piece pada baris ${index + 1} tidak valid.`);
-        return;
-      }
-
-      if (!isValidNonNegativeNumber(item.tableWeight)) {
-        setSaveError(`Berat Tabel pada baris ${index + 1} tidak valid.`);
-        return;
-      }
     }
 
     try {
       setIsSaving(true);
+      setSaveError('');
 
       const payload = {
         date,
         tolerance: Number(tolerance),
-
         data: data.map((item) => ({
           materialWidth: Number(normalizeNumberInput(item.materialWidth)),
-
           size: item.size.toUpperCase(),
-
           thickness: Number(normalizeNumberInput(item.thickness)),
-
           pieceWeight: Number(normalizeNumberInput(item.pieceWeight)),
-
           tableWeight: Number(normalizeNumberInput(item.tableWeight)),
         })),
       };
@@ -439,7 +456,6 @@ export default function InputDataPage() {
       setIsConfirmOpen(false);
     } catch (error) {
       console.error('Gagal save data masuk:', error);
-
       setSaveError(error instanceof Error ? error.message : 'Gagal menyimpan data ke database.');
     } finally {
       setIsSaving(false);
@@ -447,23 +463,13 @@ export default function InputDataPage() {
   };
 
   const handleSaveClick = () => {
-    setSaveError('');
-
-    if (!date) {
-      setSaveError('Tanggal wajib diisi.');
-      return;
+    // Validasi langsung dijalankan saat tombol Simpan Data ditekan untuk memunculkan modal peringatan jika ada yang salah
+    const errorMsg = validateData();
+    if (errorMsg) {
+      setSaveError(errorMsg);
+    } else {
+      setSaveError('');
     }
-
-    if (tolerance.trim() === '' || !isValidNonNegativeNumber(tolerance)) {
-      setSaveError('Toleransi wajib diisi dan tidak boleh minus.');
-      return;
-    }
-
-    if (data.length === 0) {
-      setSaveError('Belum ada data untuk disimpan.');
-      return;
-    }
-
     setIsConfirmOpen(true);
   };
 
@@ -608,87 +614,86 @@ export default function InputDataPage() {
 
   return (
     <div className="fixed inset-0 h-screen w-full overflow-hidden bg-gray-50 text-gray-900">
-      {/* HEADER */}
-      <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
-        <div className="flex h-full items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-gray-900">Data Masuk</h1>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-              <span className="text-xs font-medium text-gray-700">Tanggal</span>
-              <DatePicker
-                value={date}
-                onChange={setDate}
-                placeholder="Pilih Tanggal"
-                className="w-36 [&_input]:h-7 [&_input]:py-0"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
-              <span className="text-xs font-medium text-gray-700">Toleransi</span>
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={tolerance}
-                  onChange={(e) => {
-                    const value = normalizeNumberInput(e.target.value);
-                    setTolerance(value);
-                    setSaveError('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="h-7 w-16 rounded-lg border border-gray-300 bg-white px-2 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
-                />
-                <span className="text-xs text-gray-500">%</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
-              <span className="text-xs text-blue-600">Data</span>
-              <span className="text-sm font-semibold text-blue-700">{recordsCount}</span>
-            </div>
-
-            <Button
-              type="button"
-              onClick={handleResetClick}
-              className="h-9 gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 transition-colors hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
-            >
-              <RotateCcw size={14} />
-              Reset
-            </Button>
-
-            <Button
-              type="button"
-              onClick={handleSaveClick}
-              disabled={isSaving}
-              className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Save size={15} />
-              {isSaving ? 'Menyimpan...' : 'Simpan Data'}
-            </Button>
-
-            <Button
-              type="button"
-              onClick={addRow}
-              className="h-9 gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              Tambah Data
-            </Button>
+      {/* NAVBAR */}
+      <Navbar title="Data Masuk">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+            <span className="text-xs font-medium text-gray-700">Tanggal</span>
+            <DatePicker
+              value={date}
+              onChange={setDate}
+              placeholder="Pilih Tanggal"
+              className="w-36 [&_input]:h-7 [&_input]:py-0"
+            />
           </div>
-        </div>
-      </header>
 
-      {/* MAIN */}
-      <main className="fixed bottom-0 left-55 right-0 top-16 overflow-hidden bg-gray-50 p-3 text-gray-900">
+          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+            <span className="text-xs font-medium text-gray-700">Toleransi</span>
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                inputMode="decimal"
+                value={tolerance}
+                onChange={(e) => {
+                  const value = normalizeNumberInput(e.target.value);
+                  setTolerance(value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                    e.preventDefault();
+                  }
+                }}
+                className="h-7 w-16 rounded-lg border border-gray-300 bg-white px-2 text-center text-xs text-gray-900 outline-none transition focus:border-blue-600"
+              />
+              <span className="text-xs text-gray-500">%</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
+            <span className="text-xs text-blue-600">Data</span>
+            <span className="text-sm font-semibold text-blue-700">{recordsCount}</span>
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleResetClick}
+            className="h-9 gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 transition-colors hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
+          >
+            <RotateCcw size={14} />
+            Reset
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handleSaveClick}
+            disabled={isSaving}
+            className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Save size={15} />
+            {isSaving ? 'Menyimpan...' : 'Simpan Data'}
+          </Button>
+
+          <Button
+            type="button"
+            onClick={addRow}
+            className="h-9 gap-2 rounded-xl bg-blue-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-500"
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            Tambah Data
+          </Button>
+        </div>
+      </Navbar>
+
+      {/* MAIN CONTAINER */}
+      <main
+        className={`fixed bottom-0 right-0 top-16 overflow-hidden bg-gray-50 p-3 text-gray-900 transition-[left] duration-200 ease-in-out ${
+          isSidebarOpen ? 'left-0 md:left-55' : 'left-0 md:left-17.5'
+        }`}
+      >
         <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div
             ref={scrollContainerRef}
-            className="min-h-0 flex-1 overflow-auto [scrollbar-color:rgb(203_213_225)_rgb(255_255_255)] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-white [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400"
+            className="min-h-0 flex-1 overflow-auto [scrollbar-color:rgb(203_213_225)_rgb(255_255_255)] scrollbar-thin [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-2 [&::-webkit-scrollbar-thumb]:border-white [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400"
           >
             <table className="w-full table-fixed text-center text-xs">
               <colgroup>
@@ -893,24 +898,8 @@ export default function InputDataPage() {
 
                 {data.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={10}
-                      className={`px-2 py-16 text-center text-xs ${
-                        saveError ? 'text-red-600' : 'text-gray-500'
-                      }`}
-                    >
-                      {saveError || 'Belum ada data. Klik Tambah Data untuk menambahkan data.'}
-                    </td>
-                  </tr>
-                )}
-
-                {data.length > 0 && saveError && (
-                  <tr>
-                    <td
-                      colSpan={10}
-                      className="px-2 py-3 text-center text-xs font-medium text-red-600"
-                    >
-                      {saveError}
+                    <td colSpan={10} className="px-2 py-16 text-center text-xs text-gray-500">
+                      Belum ada data. Klik Tambah Data untuk menambahkan data.
                     </td>
                   </tr>
                 )}
@@ -919,8 +908,8 @@ export default function InputDataPage() {
           </div>
 
           <div className="flex shrink-0 items-center justify-between gap-4 border-t border-gray-200 bg-white px-5 py-3">
-            <span className={`text-xs ${saveError ? 'text-red-600' : 'text-gray-500'}`}>
-              {saveError || 'Data akan tersimpan ke database setelah tombol Simpan Data ditekan.'}
+            <span className="text-xs text-gray-500">
+              Gunakan tombol panah keyboard atau Enter untuk navigasi antar sel input.
             </span>
 
             <span className="text-xs font-medium text-gray-700">Total: {data.length}</span>
@@ -928,7 +917,7 @@ export default function InputDataPage() {
         </div>
       </main>
 
-      {/* MODAL KONFIRMASI SAVE */}
+      {/* MODAL KONFIRMASI SAVE / PERINGATAN ERROR */}
       <Modal
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
@@ -937,39 +926,61 @@ export default function InputDataPage() {
         size="md"
         footer={
           <div className="flex items-center justify-end gap-3">
-            <Button
-              type="button"
-              onClick={() => setIsConfirmOpen(false)}
-              disabled={isSaving}
-              className="rounded-md border border-gray-300 bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Batal
-            </Button>
+            {saveError ? (
+              <Button
+                type="button"
+                onClick={() => setIsConfirmOpen(false)}
+                className="rounded-md border border-gray-300 bg-gray-100 px-4 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+              >
+                Tutup & Periksa
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="button"
+                  onClick={() => setIsConfirmOpen(false)}
+                  disabled={isSaving}
+                  className="rounded-md border border-gray-300 bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Batal
+                </Button>
 
-            <Button
-              type="button"
-              className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isSaving}
-              onClick={async () => {
-                await saveData();
-              }}
-            >
-              <Save size={15} />
-              {isSaving ? 'Menyimpan...' : 'Ya, Simpan'}
-            </Button>
+                <Button
+                  type="button"
+                  className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isSaving}
+                  onClick={async () => {
+                    await saveData();
+                  }}
+                >
+                  <Save size={15} />
+                  {isSaving ? 'Menyimpan...' : 'Ya, Simpan'}
+                </Button>
+              </>
+            )}
           </div>
         }
       >
         <div className="flex flex-col items-center text-center">
-          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">
-            <Save size={27} />
-          </div>
-
-          <h3 className="mb-3 text-base font-semibold text-gray-900">Konfirmasi Data</h3>
-
-          <p className="max-w-sm text-sm leading-6 text-gray-600">
-            Apakah tanggal dan data yang Anda masukkan sudah benar?
-          </p>
+          {saveError ? (
+            <>
+              <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-red-200 bg-red-50 text-red-600">
+                <AlertCircle size={27} />
+              </div>
+              <h3 className="mb-2 text-base font-semibold text-gray-900">Peringatan</h3>
+              <p className="max-w-sm text-sm leading-6 text-red-600 font-medium">{saveError}</p>
+            </>
+          ) : (
+            <>
+              <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">
+                <Save size={27} />
+              </div>
+              <h3 className="mb-3 text-base font-semibold text-gray-900">Konfirmasi Data</h3>
+              <p className="max-w-sm text-sm leading-6 text-gray-600">
+                Apakah tanggal dan data yang Anda masukkan sudah benar?
+              </p>
+            </>
+          )}
         </div>
       </Modal>
 

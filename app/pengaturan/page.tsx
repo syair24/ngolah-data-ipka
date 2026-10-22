@@ -1,8 +1,16 @@
 'use client';
 
+import { useSidebar } from '@/app/layout';
+
 export default function PengaturanPage() {
+  const { isSidebarOpen } = useSidebar();
+
   return (
-    <div className="fixed inset-x-0 bottom-0 left-[220px] top-16 flex items-center justify-center bg-gray-50 px-4">
+    <div
+      className={`fixed inset-x-0 bottom-0 top-16 flex items-center justify-center bg-gray-50 px-4 transition-[left] duration-200 ease-in-out ${
+        isSidebarOpen ? 'left-0 md:left-55' : 'left-0 md:left-17.5'
+      }`}
+    >
       <div className="text-center">
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-2xl border border-gray-200 bg-white shadow-sm">
           <span className="text-4xl">⚙️</span>

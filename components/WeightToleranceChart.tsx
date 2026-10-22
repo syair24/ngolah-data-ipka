@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   Bar,
@@ -71,18 +71,6 @@ function getDayLabel(day: number, month: number, year: number) {
   return `${String(day).padStart(2, '0')} ${dayName}`;
 }
 
-function getStatusLabel(warna: ProductionData['warna']) {
-  if (warna === 'Merah') {
-    return 'Di atas toleransi';
-  }
-
-  if (warna === 'Hijau') {
-    return 'Di bawah toleransi';
-  }
-
-  return 'Sesuai toleransi';
-}
-
 export default function WeightToleranceChart({ data }: WeightToleranceChartProps) {
   /*
    * ============================================================
@@ -109,20 +97,23 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     return Array.from(new Set(years)).sort((a, b) => b - a);
   }, [data]);
 
-  const [selectedMonth, setSelectedMonth] = useState(0);
-  const [selectedYear, setSelectedYear] = useState(0);
-
-  /*
-   * ============================================================
-   * SET FILTER BERDASARKAN DATA TERBARU
-   * ============================================================
-   */
-  useEffect(() => {
-    if (!latestDate) return;
-
-    setSelectedMonth(getMonth(latestDate));
-    setSelectedYear(getYear(latestDate));
-  }, [latestDate]);
+  const [filterSelection, setFilterSelection] = useState(() => ({
+    latestDate,
+    month: latestDate ? getMonth(latestDate) : 0,
+    year: latestDate ? getYear(latestDate) : 0,
+  }));
+  const selectedMonth =
+    filterSelection.latestDate === latestDate
+      ? filterSelection.month
+      : latestDate
+        ? getMonth(latestDate)
+        : 0;
+  const selectedYear =
+    filterSelection.latestDate === latestDate
+      ? filterSelection.year
+      : latestDate
+        ? getYear(latestDate)
+        : 0;
 
   /*
    * ============================================================
@@ -231,7 +222,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
   }, [maxDailyValue]);
 
   return (
-    <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div className="mt-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       {/* ======================================================
           HEADER
       ====================================================== */}
@@ -257,7 +248,13 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
 
             <select
               value={selectedMonth}
-              onChange={(event) => setSelectedMonth(Number(event.target.value))}
+              onChange={(event) =>
+                setFilterSelection({
+                  latestDate,
+                  month: Number(event.target.value),
+                  year: selectedYear,
+                })
+              }
               className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-300 focus:outline-none focus:ring-0"
             >
               {MONTHS.map((month, index) => (
@@ -273,7 +270,13 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
 
             <select
               value={selectedYear}
-              onChange={(event) => setSelectedYear(Number(event.target.value))}
+              onChange={(event) =>
+                setFilterSelection({
+                  latestDate,
+                  month: selectedMonth,
+                  year: Number(event.target.value),
+                })
+              }
               className="h-10 w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 outline-none transition hover:border-gray-300 focus:border-gray-300 focus:outline-none focus:ring-0"
             >
               {availableYears.map((year) => (
@@ -294,7 +297,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
           EMPTY STATE
       ====================================================== */}
       {!hasData ? (
-        <div className="flex h-[380px] flex-col items-center justify-center text-center">
+        <div className="flex h-95 flex-col items-center justify-center text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
             <span className="text-xl text-gray-400">—</span>
           </div>
@@ -310,7 +313,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
           {/* ==================================================
               CHART
           ================================================== */}
-          <div className="h-[420px] w-full">
+          <div className="h-105 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={chartData}
@@ -345,14 +348,6 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   tickLine={false}
                   angle={-45}
                   textAnchor="end"
-                  height={75}
-                  label={{
-                    value: 'Tanggal',
-                    position: 'insideBottom',
-                    offset: -8,
-                    fill: '#9ca3af',
-                    fontSize: 11,
-                  }}
                 />
 
                 {/* ==================================================

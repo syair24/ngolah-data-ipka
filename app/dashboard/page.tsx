@@ -1,5 +1,6 @@
 'use client';
 
+import Navbar from '@/components/Navbar';
 import WeightToleranceChart from '@/components/WeightToleranceChart';
 
 import {
@@ -11,28 +12,20 @@ import {
 
 export default function DashboardPage() {
   const { weighingGroups, loading, error, tanggalTerbaru, latestDateData } = useDashboardData();
-
   const username = useDashboardUsername();
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
-          <div className="flex h-full items-center justify-between px-6">
-            <h1 className="text-lg font-semibold text-gray-900">Production Dashboard</h1>
-
-            <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
-              <span className="text-sm font-medium text-emerald-700">
-                {username || 'Memuat akun...'}
-              </span>
-            </div>
+        <Navbar title="Production Dashboard">
+          <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
+            <span className="text-sm font-medium text-emerald-700">Memuat akun...</span>
           </div>
-        </header>
+        </Navbar>
 
         <main className="px-3 pt-20">
           <div className="flex min-h-64 flex-col items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-
             <p className="mt-4 text-sm text-gray-500">Memuat data dari database...</p>
           </div>
         </main>
@@ -42,17 +35,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="fixed left-55 right-0 top-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
-        <div className="flex h-full items-center justify-between px-6">
-          <h1 className="text-lg font-semibold text-gray-900">Production Dashboard</h1>
-
-          <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
-            <span className="text-sm font-medium text-emerald-700">{username || 'err'}</span>
-          </div>
+      <Navbar title="Production Dashboard">
+        <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
+          <span className="text-sm font-medium text-emerald-700">{username || 'err'}</span>
         </div>
-      </header>
+      </Navbar>
 
-      <main className="px-3 pt-13">
+      <main className="px-3 pt-20">
         {error && (
           <div
             role="alert"
@@ -64,8 +53,8 @@ export default function DashboardPage() {
 
         <WeightToleranceChart data={weighingGroups} />
 
-        <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-5 flex items-start justify-between gap-4">
+        <section className="mt-6 flex h-130 flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="mb-5 flex shrink-0 items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Latest Production Data</h2>
 
@@ -81,7 +70,7 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="dashboard-scrollbar overflow-auto rounded-lg border border-gray-200">
+          <div className="dashboard-scrollbar min-h-0 flex-1 overflow-auto rounded-lg border border-gray-200">
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-20 bg-gray-100">
                 <tr className="border-b border-gray-200 text-center text-xs font-medium uppercase text-gray-600">

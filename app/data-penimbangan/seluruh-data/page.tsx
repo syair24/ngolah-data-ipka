@@ -13,8 +13,13 @@ import {
 } from '@/lib/seluruhData-helpers';
 
 import ToggleAllDatesButton from '@/components/ToggleAllDatesButton';
+import Navbar from '@/components/Navbar';
+import Input from '@/components/Input';
+import { useSidebar } from '@/app/layout';
 
 export default function SeluruhDataPage() {
+  const { isSidebarOpen } = useSidebar();
+
   const [data, setData] = useState<WeighingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -152,22 +157,22 @@ export default function SeluruhDataPage() {
   };
 
   return (
-    <>
-      {/* Header */}
-      <header className="fixed top-0 left-[220px] right-0 z-50 h-16 border-b border-gray-200 bg-white shadow-sm">
-        <div className="flex h-full items-center justify-between px-5">
-          <h1 className="text-base font-semibold text-gray-900">Seluruh Data Penimbangan</h1>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navbar Reusable */}
+      <Navbar title="Seluruh Data Penimbangan">
+        <ToggleAllDatesButton
+          allExpanded={allDatesExpanded}
+          disabled={groupedData.length === 0}
+          onClick={toggleAllDates}
+        />
+      </Navbar>
 
-          <ToggleAllDatesButton
-            allExpanded={allDatesExpanded}
-            disabled={groupedData.length === 0}
-            onClick={toggleAllDates}
-          />
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="fixed inset-x-0 bottom-0 left-[220px] top-16 overflow-hidden bg-gray-50 p-5">
+      {/* Main dengan posisi left dinamis mengikuti sidebar */}
+      <main
+        className={`fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-gray-50 p-5 transition-[left] duration-200 ease-in-out ${
+          isSidebarOpen ? 'left-0 md:left-55' : 'left-0 md:left-17.5'
+        }`}
+      >
         <div className="flex h-full min-h-0 flex-col">
           {/* Table Container */}
           <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
@@ -218,32 +223,32 @@ export default function SeluruhDataPage() {
                   <th className="border-b border-gray-200 bg-white px-2 py-2" />
 
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
-                    <input
+                    <Input
                       type="text"
                       value={filterLebar}
                       onChange={(e) => setFilterLebar(e.target.value)}
                       placeholder="Filter..."
-                      className="h-7 w-full rounded border border-gray-300 bg-white px-2 text-center text-xs font-normal text-gray-700 outline-none focus:border-blue-500"
+                      className="h-7 w-full rounded border border-black bg-white px-2 text-center text-xs font-normal text-black outline-none focus:border-black focus:ring-2 focus:ring-black/20"
                     />
                   </th>
 
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
-                    <input
+                    <Input
                       type="text"
                       value={filterUkuran}
                       onChange={(e) => setFilterUkuran(e.target.value)}
                       placeholder="Filter..."
-                      className="h-7 w-full rounded border border-gray-300 bg-white px-2 text-center text-xs font-normal text-gray-700 outline-none focus:border-blue-500"
+                      className="h-7 w-full rounded border border-black bg-white px-2 text-center text-xs font-normal text-black outline-none focus:border-black focus:ring-2 focus:ring-black/20"
                     />
                   </th>
 
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
-                    <input
+                    <Input
                       type="text"
                       value={filterKetebalan}
                       onChange={(e) => setFilterKetebalan(e.target.value)}
                       placeholder="Filter..."
-                      className="h-7 w-full rounded border border-gray-300 bg-white px-2 text-center text-xs font-normal text-gray-700 outline-none focus:border-blue-500"
+                      className="h-7 w-full rounded border border-black bg-white px-2 text-center text-xs font-normal text-black outline-none focus:border-black focus:ring-2 focus:ring-black/20"
                     />
                   </th>
 
@@ -349,6 +354,6 @@ export default function SeluruhDataPage() {
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

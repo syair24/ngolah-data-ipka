@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6) {
       return NextResponse.json({ message: 'Password minimal 6 karakter.' }, { status: 400 });
     }
 
@@ -42,16 +42,17 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
       },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+      },
     });
 
     return NextResponse.json(
       {
         message: 'Registrasi berhasil.',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-        },
+        user,
       },
       { status: 201 }
     );

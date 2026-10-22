@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     setErrorMessage('');
@@ -40,13 +40,13 @@ export default function LoginPage() {
         return;
       }
 
-      // Simpan username dari akun yang benar-benar berhasil login
+      // Simpan username tanpa role.
       const loggedInUsername = data.user.username;
 
       localStorage.setItem('username', loggedInUsername);
       sessionStorage.setItem('username', loggedInUsername);
 
-      // Setelah login, masuk ke halaman utama
+      // Masuk ke halaman utama setelah login berhasil.
       router.replace('/');
       router.refresh();
     } catch (error) {
@@ -55,15 +55,15 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className="min-h-screen w-full bg-[#1e40af] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background */}
-      <div className="absolute -top-[250px] -left-[200px] w-[600px] h-[600px] bg-[#2563eb] rounded-full pointer-events-none z-0" />
-      <div className="absolute -bottom-[200px] -left-[300px] w-[650px] h-[650px] bg-[#3b82f6] rounded-full pointer-events-none z-0 opacity-80" />
-      <div className="absolute -bottom-[150px] -right-[250px] w-[700px] h-[700px] bg-[#1d4ed8] rounded-full pointer-events-none z-0" />
-      <div className="absolute top-[10%] -right-[100px] w-[300px] h-[300px] bg-[#2563eb] rounded-full pointer-events-none z-0 opacity-60" />
+      <div className="absolute -top-62.5 -left-50 w-150 h-150 bg-[#2563eb] rounded-full pointer-events-none z-0" />
+      <div className="absolute -bottom-50 -left-75 w-162.5 h-162.5 bg-[#3b82f6] rounded-full pointer-events-none z-0 opacity-80" />
+      <div className="absolute -bottom-37.5 -right-62.5 w-175 h-175 bg-[#1d4ed8] rounded-full pointer-events-none z-0" />
+      <div className="absolute top-[10%] -right-25 w-75 h-75 bg-[#2563eb] rounded-full pointer-events-none z-0 opacity-60" />
 
       {/* Login */}
       <div className="w-full max-w-sm z-10 text-center px-4">
@@ -90,7 +90,7 @@ export default function LoginPage() {
             }}
             required
             icon={<User className="h-5 w-5" />}
-            className="!bg-transparent !border-blue-300 !text-white !placeholder-blue-200 focus:!border-white"
+            className="bg-transparent! border-blue-200/70! text-white! placeholder-blue-100! focus:border-white! focus:ring-2! focus:ring-blue-200/40!"
           />
 
           {/* Password */}
@@ -104,11 +104,10 @@ export default function LoginPage() {
             }}
             required
             icon={<Lock className="h-5 w-5" />}
-            className="bg-transparent border-blue-300 text-white placeholder-blue-200 focus:border-white"
+            className="bg-transparent! border-blue-200/70! text-white! placeholder-blue-100! focus:border-white! focus:ring-2! focus:ring-blue-200/40!"
           />
 
           {/* Login Button */}
-
           <Button
             type="submit"
             disabled={isLoading}
