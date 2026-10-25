@@ -314,9 +314,16 @@ export default function InputDataPage() {
     if (e.key === 'Enter') {
       e.preventDefault();
 
+      // Enter bergerak ke kanan pada baris yang sama.
       if (fieldIndex < FIELDS.length - 1) {
         focusInput(rowIndex, FIELDS[fieldIndex + 1]);
+      } else if (rowIndex < data.length - 1) {
+        // Jika sudah di kolom paling kanan, lanjut ke kolom paling kiri
+        // pada baris berikutnya.
+        focusInput(rowIndex + 1, FIELDS[0]);
       } else {
+        // Jika berada di sel paling kanan pada baris terakhir,
+        // buat baris baru lalu fokus ke kolom paling kiri.
         const newRowId = createRowId();
 
         setData((prev) => [
@@ -335,7 +342,11 @@ export default function InputDataPage() {
 
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            focusInput(data.length, 'materialWidth');
+            const input = inputRefs.current[`${newRowId}-materialWidth`];
+            if (input) {
+              input.focus();
+              input.select();
+            }
           });
         });
       }
