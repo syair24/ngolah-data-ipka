@@ -16,6 +16,7 @@ import {
   Info,
   Ruler,
   LogOut,
+  Loader2,
   type LucideIcon,
 } from 'lucide-react';
 import Button from '@/components/Button';
@@ -34,6 +35,7 @@ export default function Sidebar() {
 
   const isDataPage = currentPath.startsWith('/data-penimbangan');
   const [isDataOpen, setIsDataOpen] = useState(isDataPage);
+  const [isLoading, setIsLoading] = useState(false);
 
   const mainMenus: MenuItem[] = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -53,11 +55,13 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
+      setIsLoading(true);
       await fetch('/api/logout', { method: 'POST' });
       router.replace('/login');
       router.refresh();
     } catch (error) {
       console.error('LOGOUT ERROR:', error);
+      setIsLoading(false); // Matikan loading jika terjadi error agar tombol bisa diklik lagi
     }
   };
 
@@ -193,13 +197,18 @@ export default function Sidebar() {
         <Button
           type="button"
           onClick={handleLogout}
-          title={!isSidebarOpen ? 'Keluar' : undefined}
-          className={`w-full flex items-center cursor-pointer rounded-lg border border-red-200 bg-red-50 py-2.5 text-[13px] font-medium text-red-600 transition-colors duration-200 hover:bg-red-100 hover:text-red-700 ${
+          disabled={isLoading}
+          title={!isSidebarOpen && !isLoading ? 'Keluar' : undefined}
+          className={`w-full flex items-center rounded-lg border border-red-200 bg-red-50 py-2.5 text-[13px] font-medium text-red-600 transition-colors duration-200 hover:bg-red-100 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed ${
             isSidebarOpen ? 'px-3 gap-3 justify-start' : 'justify-center px-0'
           }`}
         >
-          <LogOut size={18} strokeWidth={1.8} className="shrink-0" />
-          {isSidebarOpen && <span className="truncate">Keluar</span>}
+          {isLoading ? (
+            <Loader2 size={18} strokeWidth={1.8} className="shrink-0 animate-spin" />
+          ) : (
+            <LogOut size={18} strokeWidth={1.8} className="shrink-0" />
+          )}
+          {isSidebarOpen && <span className="truncate">{isLoading ? 'Keluar...' : 'Keluar'}</span>}
         </Button>
       </div>
     </aside>
