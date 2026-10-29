@@ -286,63 +286,77 @@ export default function WeighingDataPage() {
           ) : weighingData.length === 0 ? (
             <div className="text-sm text-gray-500">Belum ada data penimbangan.</div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {weighingData.map((data, index) => (
-                <div
-                  key={data.id}
-                  className="group relative rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5"
-                >
-                  <div className="absolute -top-3 -right-3 flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-700 shadow-md transition-all duration-300 group-hover:border-blue-500 group-hover:bg-blue-600 group-hover:text-white">
-                    {index + 1}
-                  </div>
+            <div className="flex w-full flex-col gap-4">
+              {weighingData.map((data, index) => {
+                const firstItem = data.data[0];
+                const catatan =
+                  firstItem && 'catatan' in firstItem ? String(firstItem.catatan ?? '').trim() : '';
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all duration-300 group-hover:scale-110 group-hover:bg-blue-100">
-                      <Scale size={22} strokeWidth={2} />
+                return (
+                  <div
+                    key={data.id}
+                    className="group relative flex w-full flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-center">
+                      <div className="flex min-w-0 items-start gap-3 sm:min-w-75 sm:flex-1">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-all duration-300 group-hover:bg-blue-100">
+                          <Scale size={22} strokeWidth={2} />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-gray-900">Data Penimbangan</p>
+                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-gray-200 bg-gray-50 px-2 text-xs font-semibold text-gray-600">
+                              {index + 1}
+                            </span>
+                          </div>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+                            <span className="inline-flex items-center gap-1.5">
+                              <CalendarDays size={13} />
+                              {formatDateDisplay(data.tanggal)}
+                            </span>
+                            <span>Toleransi {Number(data.toleransi).toFixed(0)}%</span>
+                            <span>
+                              Admin:{' '}
+                              <span className="font-semibold text-gray-700">
+                                {data.user?.username || 'Sistem'}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="min-w-0 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 sm:w-[38%] sm:max-w-130">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                          Catatan
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap wrap-break-word text-sm text-gray-700">
+                          {catatan || 'Tidak ada catatan'}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Data Penimbangan</p>
+                    <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-6">
+                      <Button
+                        type="button"
+                        onClick={() => handleView(data)}
+                        className="min-w-24 border border-gray-300 bg-transparent px-4 py-2 text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        Lihat
+                      </Button>
 
-                      <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
-                        <CalendarDays size={13} />
-                        <span>{formatDateDisplay(data.tanggal)}</span>
-                      </div>
-
-                      <div className="mt-1 text-xs text-gray-500">
-                        Toleransi {Number(data.toleransi).toFixed(0)}%
-                      </div>
-
-                      <div className="mt-1 text-xs text-gray-500">
-                        Admin:{' '}
-                        <span className="font-semibold text-gray-700">
-                          {data.user?.username || 'Sistem'}
-                        </span>
-                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => handleEdit(data)}
+                        className="min-w-24 border border-orange-400 bg-orange-400 px-4 py-2 text-white hover:border-orange-500 hover:bg-orange-500"
+                      >
+                        Edit
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="my-2 h-px bg-gray-100" />
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      onClick={() => handleView(data)}
-                      className="flex-1 border border-gray-300 bg-transparent px-3 py-2 text-gray-700 hover:border-gray-400 hover:bg-gray-100 hover:text-gray-900"
-                    >
-                      Lihat
-                    </Button>
-
-                    <Button
-                      type="button"
-                      onClick={() => handleEdit(data)}
-                      className="flex-1 border border-orange-400 bg-orange-400 px-3 py-2 text-white hover:border-orange-500 hover:bg-orange-500"
-                    >
-                      Edit
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

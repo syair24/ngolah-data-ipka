@@ -170,6 +170,8 @@ export async function GET(request: NextRequest) {
 
         warna: true,
 
+        catatan: true,
+
         dibuatPada: true,
 
         user: {
@@ -234,6 +236,8 @@ export async function GET(request: NextRequest) {
 
           warna: 'Hijau' | 'Putih' | 'Merah';
 
+          catatan: string | null;
+
           dibuatPada: string;
         }[];
       }
@@ -288,6 +292,8 @@ export async function GET(request: NextRequest) {
         toleransi,
 
         warna,
+
+        catatan: item.catatan ?? null,
 
         dibuatPada: item.dibuatPada ? item.dibuatPada.toISOString() : new Date().toISOString(),
       });
@@ -385,6 +391,13 @@ export async function PUT(request: NextRequest) {
 
         .toUpperCase();
 
+      const catatan =
+        typeof item.catatan === 'string'
+          ? item.catatan.trim() || null
+          : item.catatan === null
+            ? null
+            : undefined;
+
       return {
         id: itemId,
 
@@ -399,6 +412,8 @@ export async function PUT(request: NextRequest) {
         beratTabel,
 
         warna: calculateColor(beratPiece, beratTabel, toleransi),
+
+        catatan,
       };
     });
 
@@ -503,6 +518,8 @@ export async function PUT(request: NextRequest) {
             beratTabel: item.beratTabel,
 
             warna: item.warna,
+
+            ...(item.catatan !== undefined ? { catatan: item.catatan } : {}),
           },
         })
       )

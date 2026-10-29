@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <head>
-        <title>Production Control System</title>
+        <title>Production Control</title>
         <meta name="description" content="Sistem Manajemen dan Kontrol Produksi Terintegrasi" />
       </head>
       <body className="antialiased font-sans text-gray-900 selection:bg-blue-500 selection:text-white">

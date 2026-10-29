@@ -8,12 +8,12 @@ datasource db {
 }
 
 model User {
-  id              Int               @id @default(autoincrement())
-  username        String            @unique
-  email           String            @unique
+  id              Int              @id @default(autoincrement())
+  username        String           @unique
+  email           String           @unique
   password        String
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   dataPenimbangan DataPenimbangan[]
 }
 
@@ -27,6 +27,7 @@ model DataPenimbangan {
   beratTabel     Decimal  @db.Decimal(10, 2)
   toleransi      Decimal  @db.Decimal(10, 2)
   warna          String
+  catatan        String?
   dibuatPada     DateTime @default(now())
   diperbaruiPada DateTime @updatedAt
   userId         Int

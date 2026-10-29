@@ -17,10 +17,18 @@ import Navbar from '@/components/Navbar';
 import Input from '@/components/Input';
 import { useSidebar } from '@/app/layout';
 
+type WeighingItemWithNote = WeighingItem & {
+  catatan?: string | null;
+};
+
+type ApiGroupWithNote = Omit<ApiGroup, 'data'> & {
+  data: (ApiGroup['data'][number] & { catatan?: string | null })[];
+};
+
 export default function SeluruhDataPage() {
   const { isSidebarOpen } = useSidebar();
 
-  const [data, setData] = useState<WeighingItem[]>([]);
+  const [data, setData] = useState<WeighingItemWithNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -32,6 +40,8 @@ export default function SeluruhDataPage() {
 
   // Mengambil data dari API
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -39,6 +49,7 @@ export default function SeluruhDataPage() {
 
         const response = await fetch('/api/data-penimbangan', {
           cache: 'no-store',
+          signal: controller.signal,
         });
 
         const result = await response.json();
@@ -51,32 +62,38 @@ export default function SeluruhDataPage() {
           throw new Error('Format data dari server tidak valid.');
         }
 
-        const flattenedData: WeighingItem[] = (result as ApiGroup[]).flatMap((group) =>
-          group.data.map((item) => ({
-            id: item.id,
-            tanggal: group.tanggalISO,
-            lebarMaterial: Number(item.lebarMaterial),
-            ukuran: item.ukuran,
-            ketebalan: Number(item.ketebalan),
-            beratPiece: Number(item.beratPiece),
-            beratTabel: Number(item.beratTabel),
-            toleransi: Number(item.toleransi),
-            warna: item.warna,
-            dibuatPada: item.dibuatPada,
-          }))
+        const flattenedData: WeighingItemWithNote[] = (result as ApiGroupWithNote[]).flatMap(
+          (group) =>
+            group.data.map((item) => ({
+              id: item.id,
+              tanggal: group.tanggalISO,
+              lebarMaterial: Number(item.lebarMaterial),
+              ukuran: item.ukuran,
+              ketebalan: Number(item.ketebalan),
+              beratPiece: Number(item.beratPiece),
+              beratTabel: Number(item.beratTabel),
+              toleransi: Number(item.toleransi),
+              warna: item.warna,
+              dibuatPada: item.dibuatPada,
+              catatan: item.catatan ?? null,
+            }))
         );
 
         setData(flattenedData);
       } catch (err) {
-        console.error('GET SELURUH DATA ERROR:', err);
+        if (err instanceof Error && err.name === 'AbortError') return;
 
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchData();
+    void fetchData();
+
+    return () => controller.abort();
   }, []);
 
   // Filter data
@@ -86,19 +103,14 @@ export default function SeluruhDataPage() {
     const normalizedFilterKetebalan = normalizeNumber(filterKetebalan);
 
     return data.filter((item) => {
-      // Filter Lebar Material
       const matchLebar =
         normalizedFilterLebar === '' || String(item.lebarMaterial).includes(normalizedFilterLebar);
 
-      // Filter Ukuran
       const normalizedUkuran = normalizeText(item.ukuran);
-
       const matchUkuran =
         normalizedFilterUkuran === '' || normalizedUkuran.includes(normalizedFilterUkuran);
 
-      // Filter Ketebalan
       const normalizedKetebalan = normalizeNumber(item.ketebalan);
-
       const matchKetebalan =
         filterKetebalan.trim() === '' || normalizedKetebalan.includes(normalizedFilterKetebalan);
 
@@ -106,9 +118,9 @@ export default function SeluruhDataPage() {
     });
   }, [data, filterLebar, filterUkuran, filterKetebalan]);
 
-  // Pengelompokan tanggal dan pengurutan ascending
+  // Kelompokkan tanggal: terbaru di atas, ID terbaru di atas
   const groupedData = useMemo(() => {
-    const groups = new Map<string, WeighingItem[]>();
+    const groups = new Map<string, WeighingItemWithNote[]>();
 
     filteredData.forEach((item) => {
       const key = item.tanggal;
@@ -121,10 +133,13 @@ export default function SeluruhDataPage() {
     });
 
     return Array.from(groups.entries())
-      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .sort(([dateA], [dateB]) => {
+        // Format tanggal dari API adalah YYYY-MM-DD
+        return dateB.localeCompare(dateA);
+      })
       .map(([tanggal, items]) => ({
         tanggal,
-        items: items.sort((a, b) => a.id - b.id),
+        items: [...items].sort((a, b) => b.id - a.id),
       }));
   }, [filteredData]);
 
@@ -158,7 +173,6 @@ export default function SeluruhDataPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar Reusable */}
       <Navbar title="Seluruh Data Penimbangan">
         <ToggleAllDatesButton
           allExpanded={allDatesExpanded}
@@ -167,14 +181,12 @@ export default function SeluruhDataPage() {
         />
       </Navbar>
 
-      {/* Main dengan posisi left dinamis mengikuti sidebar */}
       <main
         className={`fixed inset-x-0 bottom-0 top-16 overflow-hidden bg-gray-50 p-5 transition-[left] duration-200 ease-in-out ${
           isSidebarOpen ? 'left-0 md:left-55' : 'left-0 md:left-17.5'
         }`}
       >
         <div className="flex h-full min-h-0 flex-col">
-          {/* Table Container */}
           <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-gray-200 bg-white">
             <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
               <colgroup>
@@ -192,27 +204,21 @@ export default function SeluruhDataPage() {
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     No
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     Lebar Material
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     Ukuran
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     Ketebalan
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     Berat Piece
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     Berat Tabel
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-3 text-center font-semibold text-gray-700">
                     Toleransi
                   </th>
@@ -221,7 +227,6 @@ export default function SeluruhDataPage() {
                 {/* Filter */}
                 <tr className="bg-white">
                   <th className="border-b border-gray-200 bg-white px-2 py-2" />
-
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
                     <Input
                       type="text"
@@ -231,7 +236,6 @@ export default function SeluruhDataPage() {
                       className="h-7 w-full rounded border border-black bg-white px-2 text-center text-xs font-normal text-black outline-none focus:border-black focus:ring-2 focus:ring-black/20"
                     />
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
                     <Input
                       type="text"
@@ -241,7 +245,6 @@ export default function SeluruhDataPage() {
                       className="h-7 w-full rounded border border-black bg-white px-2 text-center text-xs font-normal text-black outline-none focus:border-black focus:ring-2 focus:ring-black/20"
                     />
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-2">
                     <Input
                       type="text"
@@ -251,7 +254,6 @@ export default function SeluruhDataPage() {
                       className="h-7 w-full rounded border border-black bg-white px-2 text-center text-xs font-normal text-black outline-none focus:border-black focus:ring-2 focus:ring-black/20"
                     />
                   </th>
-
                   <th className="border-b border-gray-200 bg-white px-2 py-2" />
                   <th className="border-b border-gray-200 bg-white px-2 py-2" />
                   <th className="border-b border-gray-200 bg-white px-2 py-2" />
@@ -283,27 +285,44 @@ export default function SeluruhDataPage() {
                   groupedData.map((group) => {
                     const isExpanded = expandedDates.has(group.tanggal);
 
+                    const catatan = group.items
+                      .find((item) => item.catatan?.trim())
+                      ?.catatan?.trim();
+
                     return (
                       <Fragment key={group.tanggal}>
-                        {/* Group tanggal */}
+                        {/* Grup tanggal */}
                         <tr>
-                          <td colSpan={7} className="border-b border-blue-200 bg-blue-50 px-3 py-2">
+                          <td colSpan={7} className="border-b border-blue-200 bg-blue-50 p-0">
                             <button
                               type="button"
                               onClick={() => toggleDate(group.tanggal)}
                               aria-expanded={isExpanded}
-                              className="flex w-full items-center justify-start gap-2 text-left"
+                              aria-label={`${isExpanded ? 'Tutup' : 'Buka'} data tanggal ${formatTanggal(group.tanggal)}`}
+                              className="flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                             >
-                              <span className="flex h-5 w-5 items-center justify-center rounded text-blue-700">
-                                {isExpanded ? '▼' : '▶'}
+                              <span className="flex min-w-0 items-center gap-2">
+                                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-blue-700">
+                                  {isExpanded ? '▼' : '▶'}
+                                </span>
+
+                                <span className="font-semibold text-blue-900">
+                                  {formatTanggal(group.tanggal)}
+                                </span>
+
+                                <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                                  {group.items.length} Data
+                                </span>
                               </span>
 
-                              <span className="font-semibold text-blue-900">
-                                {formatTanggal(group.tanggal)}
-                              </span>
+                              <span className="flex min-w-0 flex-1 items-start gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 sm:ml-4 sm:max-w-[60%]">
+                                <span className="shrink-0 text-xs font-semibold text-blue-700">
+                                  Catatan:
+                                </span>
 
-                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                                {group.items.length} Data
+                                <span className="min-w-0 whitespace-pre-wrap wrap-break-word text-xs text-gray-700">
+                                  {catatan || 'Tidak ada catatan'}
+                                </span>
                               </span>
                             </button>
                           </td>
@@ -319,27 +338,21 @@ export default function SeluruhDataPage() {
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {index + 1}
                               </td>
-
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {item.lebarMaterial}
                               </td>
-
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {item.ukuran}
                               </td>
-
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {formatDecimal(item.ketebalan)}
                               </td>
-
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {formatDecimal(item.beratPiece)}
                               </td>
-
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {formatDecimal(item.beratTabel)}
                               </td>
-
                               <td className="border-b border-gray-100 px-2 py-2 text-center text-gray-700">
                                 {formatDecimal(item.toleransi)}%
                               </td>

@@ -26,6 +26,7 @@ interface InputDraft {
   data: InputItem[];
   date: string;
   tolerance: string;
+  catatan: string;
 }
 
 const STORAGE_KEY = 'data-masuk-draft';
@@ -64,6 +65,8 @@ export default function InputDataPage() {
   const [data, setData] = useState<InputItem[]>([]);
   const [date, setDate] = useState<string>('');
   const [tolerance, setTolerance] = useState<string>('');
+  // Satu catatan di header yang diterapkan ke semua barang dalam satu kali input.
+  const [catatan, setCatatan] = useState<string>('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
 
@@ -101,6 +104,7 @@ export default function InputDataPage() {
         setData(draft.data);
         setDate(draft.date);
         setTolerance(draft.tolerance);
+        setCatatan(draft.catatan ?? '');
       }
 
       setDraftLoaded(true);
@@ -125,13 +129,14 @@ export default function InputDataPage() {
         data,
         date,
         tolerance,
+        catatan,
       };
 
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
     } catch (error) {
       console.error('Gagal menyimpan draft Data Masuk:', error);
     }
-  }, [data, date, tolerance, draftLoaded]);
+  }, [data, date, tolerance, catatan, draftLoaded]);
 
   // =========================================================
   // INPUT HELPERS
@@ -212,6 +217,7 @@ export default function InputDataPage() {
     resetData();
     setDate('');
     setTolerance('');
+    setCatatan('');
 
     try {
       sessionStorage.removeItem(STORAGE_KEY);
@@ -437,6 +443,8 @@ export default function InputDataPage() {
           thickness: Number(normalizeNumberInput(item.thickness)),
           pieceWeight: Number(normalizeNumberInput(item.pieceWeight)),
           tableWeight: Number(normalizeNumberInput(item.tableWeight)),
+          // Catatan header yang sama dikirim untuk setiap barang.
+          catatan: catatan.trim() || null,
         })),
       };
 
@@ -457,6 +465,7 @@ export default function InputDataPage() {
       setData([]);
       setDate('');
       setTolerance('');
+      setCatatan('');
 
       try {
         sessionStorage.removeItem(STORAGE_KEY);
@@ -626,7 +635,7 @@ export default function InputDataPage() {
   return (
     <div className="fixed inset-0 h-screen w-full overflow-hidden bg-gray-50 text-gray-900">
       {/* NAVBAR */}
-      <Navbar title="Data Masuk">
+      <Navbar title="">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
             <span className="text-xs font-medium text-gray-700">Tanggal</span>
@@ -660,6 +669,24 @@ export default function InputDataPage() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2">
+            <label
+              htmlFor="catatan-semua-data"
+              className="whitespace-nowrap text-xs font-medium text-gray-700"
+            >
+              Catatan
+            </label>
+            <input
+              id="catatan-semua-data"
+              type="text"
+              value={catatan}
+              onChange={(e) => setCatatan(e.target.value)}
+              placeholder="Catatan (opsional)"
+              title="Catatan ini akan diterapkan ke semua barang yang disimpan sekaligus"
+              className="h-7 w-44 rounded-lg border border-gray-300 bg-white px-2 text-xs text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-600"
+            />
+          </div>
+
           <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2">
             <span className="text-xs text-blue-600">Data</span>
             <span className="text-sm font-semibold text-blue-700">{recordsCount}</span>
@@ -668,7 +695,7 @@ export default function InputDataPage() {
           <Button
             type="button"
             onClick={handleResetClick}
-            className="h-9 gap-2 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-xs font-medium text-orange-600 transition-colors hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700"
+            className="h-9 gap-1 rounded-xl border border-orange-200 bg-orange-50 px-3.5 text-[11px] font-medium text-orange-600 transition-colors hover:border-orange-300 hover:bg-orange-100 hover:text-orange-700 "
           >
             <RotateCcw size={14} />
             Reset
@@ -678,7 +705,7 @@ export default function InputDataPage() {
             type="button"
             onClick={handleSaveClick}
             disabled={isSaving}
-            className="h-9 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-9 gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 text-[11px] font-medium text-emerald-600 transition-colors hover:border-emerald-300 hover:bg-emerald-100 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save size={15} />
             {isSaving ? 'Menyimpan...' : 'Simpan Data'}
