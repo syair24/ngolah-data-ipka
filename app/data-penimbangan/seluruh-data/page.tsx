@@ -321,7 +321,7 @@ export default function SeluruhDataPage() {
                                 </span>
 
                                 <span className="min-w-0 whitespace-pre-wrap wrap-break-word text-xs text-gray-700">
-                                  {catatan || 'Tidak ada catatan'}
+                                  {catatan || '-'}
                                 </span>
                               </span>
                             </button>

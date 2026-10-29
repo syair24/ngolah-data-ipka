@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarDays, FileSpreadsheet, Scale } from 'lucide-react';
+import { CalendarDays, FileSpreadsheet, Pencil, Scale } from 'lucide-react';
 
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
@@ -29,9 +29,13 @@ export default function WeighingDataPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCatatanModalOpen, setIsCatatanModalOpen] = useState(false);
+  const [catatanText, setCatatanText] = useState('');
+  const [savingCatatan, setSavingCatatan] = useState(false);
 
   const [selectedData, setSelectedData] = useState<WeighingCard | null>(null);
   const [selectedEditData, setSelectedEditData] = useState<WeighingCard | null>(null);
+  const [selectedCatatanData, setSelectedCatatanData] = useState<WeighingCard | null>(null);
 
   const [error, setError] = useState('');
 
@@ -114,6 +118,74 @@ export default function WeighingDataPage() {
 
     setIsEditModalOpen(false);
     setSelectedEditData(null);
+  };
+
+  // =========================================================
+  // EDIT CATATAN
+  // =========================================================
+
+  const handleEditCatatan = (data: WeighingCard) => {
+    const firstItem = data.data[0] as (typeof data.data)[number] & { catatan?: string | null };
+    setSelectedCatatanData(data);
+    setCatatanText(String(firstItem?.catatan ?? ''));
+    setIsCatatanModalOpen(true);
+  };
+
+  const handleCloseCatatanModal = () => {
+    if (savingCatatan) return;
+    setIsCatatanModalOpen(false);
+    setSelectedCatatanData(null);
+    setCatatanText('');
+  };
+
+  const handleSaveCatatan = async () => {
+    if (!selectedCatatanData) return;
+
+    const firstItem = selectedCatatanData.data[0];
+    if (!firstItem) {
+      setError('Data penimbangan tidak ditemukan.');
+      return;
+    }
+
+    try {
+      setSavingCatatan(true);
+      setError('');
+
+      const response = await fetch('/api/data-penimbangan', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateCatatan',
+          id: firstItem.id,
+          catatan: catatanText,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(result?.error || result?.message || 'Gagal menyimpan catatan.');
+      }
+
+      const url = searchDate
+        ? `/api/data-penimbangan?tanggal=${encodeURIComponent(searchDate)}`
+        : '/api/data-penimbangan';
+      const refreshResponse = await fetch(url, { cache: 'no-store' });
+      if (!refreshResponse.ok) {
+        throw new Error('Catatan tersimpan, tetapi daftar gagal dimuat ulang.');
+      }
+
+      setWeighingData(await refreshResponse.json());
+      setIsCatatanModalOpen(false);
+      setSelectedCatatanData(null);
+      setCatatanText('');
+    } catch (error) {
+      console.error('SAVE CATATAN ERROR:', error);
+      setError(
+        error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan catatan.'
+      );
+    } finally {
+      setSavingCatatan(false);
+    }
   };
 
   // =========================================================
@@ -332,7 +404,7 @@ export default function WeighingDataPage() {
                           Catatan
                         </p>
                         <p className="mt-1 whitespace-pre-wrap wrap-break-word text-sm text-gray-700">
-                          {catatan || 'Tidak ada catatan'}
+                          {catatan || '-'}
                         </p>
                       </div>
                     </div>
@@ -352,6 +424,15 @@ export default function WeighingDataPage() {
                         className="min-w-24 border border-orange-400 bg-orange-400 px-4 py-2 text-white hover:border-orange-500 hover:bg-orange-500"
                       >
                         Edit
+                      </Button>
+
+                      <Button
+                        type="button"
+                        onClick={() => handleEditCatatan(data)}
+                        className="min-w-32 border border-blue-400 bg-blue-500 px-4 py-2 text-white hover:border-blue-500 hover:bg-blue-600"
+                      >
+                        <Pencil size={14} className="mr-2" />
+                        Edit Catatan
                       </Button>
                     </div>
                   </div>
@@ -558,6 +639,56 @@ export default function WeighingDataPage() {
         onSave={handleSaveEdit}
         onDeleteAll={handleDeleteAll}
       />
+
+      {/* MODAL EDIT CATATAN */}
+      <Modal
+        isOpen={isCatatanModalOpen}
+        onClose={handleCloseCatatanModal}
+        title={
+          selectedCatatanData
+            ? `Edit Catatan - ${formatDateDisplay(selectedCatatanData.tanggal)}`
+            : 'Edit Catatan'
+        }
+        size="lg"
+        footer={
+          <div className="flex w-full justify-end gap-2">
+            <Button
+              type="button"
+              onClick={handleCloseCatatanModal}
+              disabled={savingCatatan}
+              className="border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-100"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveCatatan}
+              disabled={savingCatatan}
+              className="border border-blue-600 bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            >
+              {savingCatatan ? 'Menyimpan...' : 'Simpan Catatan'}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <label htmlFor="catatan-penimbangan" className="block text-sm font-medium text-gray-700">
+            Catatan Penimbangan
+          </label>
+          <textarea
+            id="catatan-penimbangan"
+            value={catatanText}
+            onChange={(event) => setCatatanText(event.target.value)}
+            rows={5}
+            placeholder="Tulis catatan di sini..."
+            disabled={savingCatatan}
+            className="w-full resize-y rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100"
+          />
+          <p className="text-xs text-gray-500">
+            Catatan akan disimpan pada data penimbangan yang dipilih.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

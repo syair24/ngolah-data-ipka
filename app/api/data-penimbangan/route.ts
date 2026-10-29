@@ -329,6 +329,54 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // UPDATE CATATAN SAJA
+    // Jalur ini terpisah agar perubahan catatan tidak mengubah data penimbangan lainnya.
+    if (body.action === 'updateCatatan') {
+      const catatanId = Number(body.id);
+
+      const catatan =
+        typeof body.catatan === 'string'
+          ? body.catatan.trim() || null
+          : body.catatan === null
+            ? null
+            : undefined;
+
+      if (!Number.isInteger(catatanId) || catatanId <= 0 || catatan === undefined) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'ID data atau isi catatan tidak valid.',
+          },
+          { status: 400 }
+        );
+      }
+
+      const existingCatatan = await prisma.dataPenimbangan.findUnique({
+        where: { id: catatanId },
+        select: { id: true },
+      });
+
+      if (!existingCatatan) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Data penimbangan untuk catatan tidak ditemukan.',
+          },
+          { status: 404 }
+        );
+      }
+
+      await prisma.dataPenimbangan.update({
+        where: { id: catatanId },
+        data: { catatan },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Catatan berhasil diperbarui.',
+      });
+    }
+
     const id = Number(body.id);
 
     const tanggal = String(body.tanggal ?? '').trim();
