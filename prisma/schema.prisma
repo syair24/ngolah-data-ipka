@@ -8,13 +8,28 @@ datasource db {
 }
 
 model User {
-  id              Int              @id @default(autoincrement())
-  username        String           @unique
-  email           String           @unique
+  id              Int               @id @default(autoincrement())
+  username        String            @unique
+  email           String            @unique
   password        String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   dataPenimbangan DataPenimbangan[]
+  notifications   Notification[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  aksi      String
+  judul     String
+  pesan     String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model DataPenimbangan {

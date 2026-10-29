@@ -176,13 +176,48 @@ export async function POST(request: NextRequest) {
     // SIMPAN KE DATABASE MENGGUNAKAN TRANSACTION
     // =======================================================
 
-    const databaseTransactions = rows.map((row) =>
-      prisma.dataPenimbangan.create({
-        data: row,
-      })
-    );
+    const actor = await prisma.user.findUnique({
+      where: {
+        id: loggedInUserId,
+      },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
 
-    const savedData = await prisma.$transaction(databaseTransactions);
+    if (!actor) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Pengguna tidak ditemukan. Silakan login kembali.',
+        },
+        { status: 401 }
+      );
+    }
+
+    const savedData = await prisma.$transaction(async (tx) => {
+      const createdData = [];
+
+      for (const row of rows) {
+        const item = await tx.dataPenimbangan.create({
+          data: row,
+        });
+
+        createdData.push(item);
+      }
+
+      await tx.notification.create({
+        data: {
+          userId: actor.id,
+          aksi: 'CREATE',
+          judul: 'Data penimbangan ditambahkan',
+          pesan: `${actor.username} menambahkan ${createdData.length} data penimbangan.`,
+        },
+      });
+
+      return createdData;
+    });
 
     return NextResponse.json(
       {

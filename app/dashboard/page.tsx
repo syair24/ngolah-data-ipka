@@ -2,6 +2,7 @@
 
 import Navbar from '@/components/Navbar';
 import WeightToleranceChart from '@/components/WeightToleranceChart';
+import NotificationBell from '@/components/NotificationBell';
 
 import {
   formatDate,
@@ -36,8 +37,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar title="Production Dashboard">
-        <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
-          <span className="text-sm font-medium text-emerald-700">{username || 'err'}</span>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+
+          <div className="flex h-9 items-center rounded-md border border-emerald-200 bg-emerald-50 px-3.5">
+            <span className="text-sm font-medium text-emerald-700">{username || 'err'}</span>
+          </div>
         </div>
       </Navbar>
 

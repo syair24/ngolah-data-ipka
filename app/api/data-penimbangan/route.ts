@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-
+import { cookies } from 'next/headers';
 import { PrismaPg } from '@prisma/adapter-pg';
-
 import { PrismaClient } from '@/app/generated/prisma';
 
 const connectionString = process.env.DATABASE_URL;
@@ -11,32 +10,62 @@ if (!connectionString) {
 }
 
 const adapter = new PrismaPg({ connectionString });
-
 const prisma = new PrismaClient({ adapter });
+
+// ==========================================
+// MEMBUAT NOTIFIKASI AKTIVITAS
+// ==========================================
+
+async function createActivityNotification(
+  aksi: 'CREATE' | 'UPDATE' | 'DELETE',
+  judul: string,
+  pesan: string
+) {
+  try {
+    const cookieStore = await cookies();
+    const session = cookieStore.get('session')?.value;
+    const userId = Number(session);
+
+    if (!session || !Number.isInteger(userId) || userId <= 0) {
+      console.error('Notifikasi tidak dibuat: session tidak valid.');
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      console.error('Notifikasi tidak dibuat: user tidak ditemukan.');
+      return;
+    }
+
+    await prisma.notification.create({
+      data: {
+        userId: user.id,
+        aksi,
+        judul,
+        pesan,
+      },
+    });
+  } catch (error) {
+    console.error('GAGAL MEMBUAT NOTIFIKASI:', error);
+  }
+}
 
 const MONTHS = [
   'Januari',
-
   'Februari',
-
   'Maret',
-
   'April',
-
   'Mei',
-
   'Juni',
-
   'Juli',
-
   'Agustus',
-
   'September',
-
   'Oktober',
-
   'November',
-
   'Desember',
 ];
 
@@ -51,9 +80,7 @@ function normalizeDate(value: string): string | null {
 
   if (isoMatch) {
     const year = Number(isoMatch[1]);
-
     const month = Number(isoMatch[2]);
-
     const day = Number(isoMatch[3]);
 
     if (month < 1 || month > 12 || day < 1 || day > 31) {
@@ -70,11 +97,8 @@ function normalizeDate(value: string): string | null {
   }
 
   const normalized = value
-
     .toLowerCase()
-
     .replace(/^[a-z]+,\s*/, '')
-
     .trim();
 
   const match = normalized.match(/^(\d{1,2})\s+([a-z]+)\s+(\d{4})$/);
@@ -82,14 +106,11 @@ function normalizeDate(value: string): string | null {
   if (!match) return null;
 
   const day = Number(match[1]);
-
   const monthName = match[2].charAt(0).toUpperCase() + match[2].slice(1);
-
   const year = Number(match[3]);
-
   const month = MONTHS.indexOf(monthName) + 1;
 
-  if (month < 1 || day < 1 || day > 31) {
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
     return null;
   }
 
@@ -102,50 +123,57 @@ function normalizeDate(value: string): string | null {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+// Format tanggal singkat: 02-11-2026
+// Format tanggal panjang: Senin, 2 November 2026
+function formatDateLongForMessage(value: string): string {
+  const normalized = normalizeDate(value);
+
+  if (!normalized) return value;
+
+  const [year, month, day] = normalized.split('-');
+  const date = new Date(Number(year), Number(month) - 1, Number(day), 12);
+
+  return new Intl.DateTimeFormat('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
 function calculateColor(
   pieceWeight: number,
-
   tableWeight: number,
-
   tolerance: number
 ): 'Hijau' | 'Putih' | 'Merah' {
   const upperLimit = tableWeight + (tableWeight * tolerance) / 100;
-
   const lowerLimit = tableWeight - (tableWeight * tolerance) / 100;
 
   const piece = truncateTwoDecimals(pieceWeight);
-
   const upper = truncateTwoDecimals(upperLimit);
-
   const lower = truncateTwoDecimals(lowerLimit);
 
   if (piece < lower) return 'Hijau';
-
   if (piece > upper) return 'Merah';
 
   return 'Putih';
 }
 
 // ==========================================
-
 // GET DATA PENIMBANGAN
-
 // ==========================================
 
 export async function GET(request: NextRequest) {
   try {
     const tanggal = request.nextUrl.searchParams.get('tanggal');
-
     const searchTanggal = tanggal ? normalizeDate(tanggal) : null;
 
     if (tanggal && !searchTanggal) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Format tanggal tidak valid.',
         },
-
         { status: 400 }
       );
     }
@@ -153,47 +181,25 @@ export async function GET(request: NextRequest) {
     const databaseData = await prisma.dataPenimbangan.findMany({
       select: {
         id: true,
-
         tanggal: true,
-
         lebarMaterial: true,
-
         ukuran: true,
-
         ketebalan: true,
-
         beratPiece: true,
-
         beratTabel: true,
-
         toleransi: true,
-
         warna: true,
-
         catatan: true,
-
         dibuatPada: true,
-
         user: {
           select: {
             id: true,
-
             username: true,
-
             email: true,
           },
         },
       },
-
-      orderBy: [
-        {
-          dibuatPada: 'desc',
-        },
-
-        {
-          id: 'desc',
-        },
-      ],
+      orderBy: [{ dibuatPada: 'desc' }, { id: 'desc' }],
     });
 
     const filteredData = searchTanggal
@@ -204,40 +210,24 @@ export async function GET(request: NextRequest) {
       string,
       {
         id: number;
-
         tanggal: string;
-
         tanggalISO: string;
-
         toleransi: number;
-
         user: {
           id: number;
-
           username: string;
-
           email: string;
         } | null;
-
         data: {
           id: number;
-
           lebarMaterial: number;
-
           ukuran: string;
-
           ketebalan: number;
-
           beratPiece: number;
-
           beratTabel: number;
-
           toleransi: number;
-
           warna: 'Hijau' | 'Putih' | 'Merah';
-
           catatan: string | null;
-
           dibuatPada: string;
         }[];
       }
@@ -249,13 +239,9 @@ export async function GET(request: NextRequest) {
       if (!tanggalISO) continue;
 
       const lebarMaterial = Number(item.lebarMaterial);
-
       const ketebalan = Number(item.ketebalan);
-
       const beratPiece = Number(item.beratPiece);
-
       const beratTabel = Number(item.beratTabel);
-
       const toleransi = Number(item.toleransi);
 
       const warna = calculateColor(beratPiece, beratTabel, toleransi);
@@ -263,38 +249,26 @@ export async function GET(request: NextRequest) {
       if (!grouped.has(tanggalISO)) {
         grouped.set(tanggalISO, {
           id: item.id,
-
-          tanggal: item.tanggal,
-
+          // Tanggal untuk ditampilkan di card
+          tanggal: formatDateLongForMessage(tanggalISO),
+          // Tanggal ISO tetap tersedia untuk filter dan proses data
           tanggalISO,
-
           toleransi,
-
           user: item.user || null,
-
           data: [],
         });
       }
 
       grouped.get(tanggalISO)!.data.push({
         id: item.id,
-
         lebarMaterial,
-
         ukuran: item.ukuran,
-
         ketebalan,
-
         beratPiece,
-
         beratTabel,
-
         toleransi,
-
         warna,
-
         catatan: item.catatan ?? null,
-
         dibuatPada: item.dibuatPada ? item.dibuatPada.toISOString() : new Date().toISOString(),
       });
     }
@@ -310,19 +284,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-
         error: error instanceof Error ? error.message : 'Gagal memproses data.',
       },
-
       { status: 500 }
     );
   }
 }
 
 // ==========================================
-
 // PUT UPDATE DATA PENIMBANGAN
-
 // ==========================================
 
 export async function PUT(request: NextRequest) {
@@ -330,7 +300,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     // UPDATE CATATAN SAJA
-    // Jalur ini terpisah agar perubahan catatan tidak mengubah data penimbangan lainnya.
     if (body.action === 'updateCatatan') {
       const catatanId = Number(body.id);
 
@@ -353,7 +322,11 @@ export async function PUT(request: NextRequest) {
 
       const existingCatatan = await prisma.dataPenimbangan.findUnique({
         where: { id: catatanId },
-        select: { id: true },
+        select: {
+          id: true,
+          tanggal: true,
+          catatan: true,
+        },
       });
 
       if (!existingCatatan) {
@@ -366,10 +339,20 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      await prisma.dataPenimbangan.update({
-        where: { id: catatanId },
-        data: { catatan },
-      });
+      if (existingCatatan.catatan !== catatan) {
+        await prisma.dataPenimbangan.update({
+          where: { id: catatanId },
+          data: { catatan },
+        });
+
+        await createActivityNotification(
+          'UPDATE',
+          'Catatan penimbangan diperbarui',
+          `Catatan pada data penimbangan hari ${formatDateLongForMessage(
+            existingCatatan.tanggal
+          )} berhasil diperbarui.`
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -378,21 +361,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const id = Number(body.id);
-
     const tanggal = String(body.tanggal ?? '').trim();
-
     const toleransi = Number(body.toleransi);
-
     const data = body.data;
 
     if (!Number.isInteger(id) || id <= 0 || !tanggal || !Array.isArray(data) || data.length === 0) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Data yang dikirim tidak lengkap atau tidak valid.',
         },
-
         { status: 400 }
       );
     }
@@ -403,10 +381,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Format tanggal tidak valid.',
         },
-
         { status: 400 }
       );
     }
@@ -415,28 +391,20 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Nilai toleransi tidak valid.',
         },
-
         { status: 400 }
       );
     }
 
     const normalizedData = data.map((item: Record<string, unknown>) => {
       const itemId = Number(item.id);
-
       const lebarMaterial = Number(item.lebarMaterial);
-
       const ketebalan = Number(item.ketebalan);
-
       const beratPiece = Number(item.beratPiece);
-
       const beratTabel = Number(item.beratTabel);
-
       const ukuran = String(item.ukuran ?? '')
         .trim()
-
         .toUpperCase();
 
       const catatan =
@@ -448,19 +416,12 @@ export async function PUT(request: NextRequest) {
 
       return {
         id: itemId,
-
         lebarMaterial,
-
         ukuran,
-
         ketebalan,
-
         beratPiece,
-
         beratTabel,
-
         warna: calculateColor(beratPiece, beratTabel, toleransi),
-
         catatan,
       };
     });
@@ -485,10 +446,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Terdapat nilai input yang tidak valid.',
         },
-
         { status: 400 }
       );
     }
@@ -499,10 +458,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Terdapat ID data yang duplikat.',
         },
-
         { status: 400 }
       );
     }
@@ -511,23 +468,24 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'ID utama tidak cocok dengan data yang dikirim.',
         },
-
         { status: 400 }
       );
     }
 
     const existingData = await prisma.dataPenimbangan.findMany({
-      where: {
-        id: {
-          in: ids,
-        },
-      },
-
+      where: { id: { in: ids } },
       select: {
         id: true,
+        tanggal: true,
+        toleransi: true,
+        lebarMaterial: true,
+        ukuran: true,
+        ketebalan: true,
+        beratPiece: true,
+        beratTabel: true,
+        catatan: true,
       },
     });
 
@@ -535,47 +493,66 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-
           error: 'Sebagian data tidak ditemukan di database.',
         },
-
         { status: 404 }
       );
     }
 
+    // Cari data yang benar-benar berubah.
+    const existingById = new Map(existingData.map((item) => [item.id, item]));
+
+    const changedItems = normalizedData.filter((item) => {
+      const oldItem = existingById.get(item.id);
+
+      if (!oldItem) return false;
+
+      const oldCatatan = oldItem.catatan == null ? null : oldItem.catatan;
+
+      const newCatatan = item.catatan === undefined ? oldCatatan : item.catatan;
+
+      return (
+        normalizeDate(oldItem.tanggal) !== tanggalISO ||
+        Number(oldItem.toleransi) !== toleransi ||
+        Number(oldItem.lebarMaterial) !== item.lebarMaterial ||
+        oldItem.ukuran !== item.ukuran ||
+        Number(oldItem.ketebalan) !== item.ketebalan ||
+        Number(oldItem.beratPiece) !== item.beratPiece ||
+        Number(oldItem.beratTabel) !== item.beratTabel ||
+        oldCatatan !== newCatatan
+      );
+    });
+
     await prisma.$transaction(
       normalizedData.map((item) =>
         prisma.dataPenimbangan.update({
-          where: {
-            id: item.id,
-          },
-
+          where: { id: item.id },
           data: {
-            tanggal,
-
+            tanggal: tanggalISO,
             toleransi,
-
             lebarMaterial: item.lebarMaterial,
-
             ukuran: item.ukuran,
-
             ketebalan: item.ketebalan,
-
             beratPiece: item.beratPiece,
-
             beratTabel: item.beratTabel,
-
             warna: item.warna,
-
             ...(item.catatan !== undefined ? { catatan: item.catatan } : {}),
           },
         })
       )
     );
 
+    // NOTIFIKASI EDIT DENGAN FORMAT TANGGAL LENGKAP
+    if (changedItems.length > 0) {
+      await createActivityNotification(
+        'UPDATE',
+        'Data penimbangan diperbarui',
+        `Data penimbangan hari ${formatDateLongForMessage(tanggalISO)} berhasil diperbarui.`
+      );
+    }
+
     return NextResponse.json({
       success: true,
-
       message: 'Data penimbangan berhasil diperbarui.',
     });
   } catch (error) {
@@ -584,10 +561,8 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-
         error: error instanceof Error ? error.message : 'Gagal menyimpan perubahan data.',
       },
-
       { status: 500 }
     );
   }
@@ -634,13 +609,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Validasi seluruh ID dan pastikan semuanya berada pada tanggal yang dipilih.
     const existingData = await prisma.dataPenimbangan.findMany({
-      where: {
-        id: {
-          in: dataIds,
-        },
-      },
+      where: { id: { in: dataIds } },
       select: {
         id: true,
         tanggal: true,
@@ -662,14 +632,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Filter tanggal tetap disertakan sebagai lapisan pengaman tambahan.
     const result = await prisma.dataPenimbangan.deleteMany({
-      where: {
-        id: {
-          in: dataIds,
-        },
-      },
+      where: { id: { in: dataIds } },
     });
+
+    if (result.count > 0) {
+      await createActivityNotification(
+        'DELETE',
+        'Data penimbangan dihapus',
+        `${result.count} data penimbangan hari ${formatDateLongForMessage(
+          tanggalISO
+        )} berhasil dihapus.`
+      );
+    }
 
     return NextResponse.json({
       success: true,
