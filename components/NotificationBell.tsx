@@ -10,6 +10,10 @@ type NotificationItem = {
   pesan: string;
   isRead: boolean;
   createdAt: string;
+  user?: {
+    id: number;
+    username: string;
+  } | null;
 };
 
 export default function NotificationBell() {
@@ -73,7 +77,7 @@ export default function NotificationBell() {
   useEffect(() => {
     let active = true;
 
-    const loadNotifications = async () => {
+    const fetchNotifications = async () => {
       try {
         const response = await fetch('/api/notifications', {
           cache: 'no-store',
@@ -86,15 +90,15 @@ export default function NotificationBell() {
         if (active) {
           setNotifications(Array.isArray(result) ? result : (result.notifications ?? []));
         }
-      } catch (error) {
-        console.error('Gagal mengambil notifikasi:', error);
+      } catch (err) {
+        console.error('Gagal mengambil notifikasi:', err);
       }
     };
 
-    loadNotifications();
+    void fetchNotifications();
 
     const interval = setInterval(() => {
-      loadNotifications();
+      void fetchNotifications();
     }, 3000);
 
     return () => {
@@ -103,6 +107,29 @@ export default function NotificationBell() {
     };
   }, []);
 
+  function getActionText(aksi: string) {
+    const action = aksi.toLowerCase();
+
+    if (action.includes('hapus') || action.includes('delete') || action.includes('remove')) {
+      return 'telah menghapus';
+    }
+
+    if (action.includes('edit') || action.includes('update') || action.includes('ubah')) {
+      return 'telah mengedit';
+    }
+
+    if (
+      action.includes('tambah') ||
+      action.includes('create') ||
+      action.includes('input') ||
+      action.includes('insert')
+    ) {
+      return 'telah menambahkan';
+    }
+
+    return 'melakukan aktivitas';
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -110,7 +137,10 @@ export default function NotificationBell() {
         onClick={() => {
           const nextOpen = !open;
           setOpen(nextOpen);
-          if (nextOpen) void loadNotifications();
+
+          if (nextOpen) {
+            void loadNotifications();
+          }
         }}
         aria-label="Notifikasi"
         aria-expanded={open}
@@ -130,6 +160,7 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
             <div>
               <h3 className="font-semibold text-gray-900">Notifikasi</h3>
+
               <p className="text-xs text-gray-500">{unreadCount} belum dibaca</p>
             </div>
 
@@ -155,7 +186,9 @@ export default function NotificationBell() {
             ) : notifications.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <Bell className="mx-auto mb-2 text-gray-300" size={28} />
+
                 <p className="text-sm font-medium text-gray-700">Belum ada notifikasi</p>
+
                 <p className="mt-1 text-xs text-gray-400">
                   Aktivitas penimbangan akan muncul di sini.
                 </p>
@@ -176,7 +209,10 @@ export default function NotificationBell() {
                     />
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-800">{item.judul}</p>
+                      <p className="text-sm font-semibold text-gray-800">
+                        {item.user?.username ?? 'Pengguna tidak diketahui'}{' '}
+                        {getActionText(item.aksi)}
+                      </p>
 
                       <p className="mt-1 wrap-break-word text-sm text-gray-600">{item.pesan}</p>
 

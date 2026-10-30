@@ -102,12 +102,14 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     month: latestDate ? getMonth(latestDate) : 0,
     year: latestDate ? getYear(latestDate) : 0,
   }));
+
   const selectedMonth =
     filterSelection.latestDate === latestDate
       ? filterSelection.month
       : latestDate
         ? getMonth(latestDate)
         : 0;
+
   const selectedYear =
     filterSelection.latestDate === latestDate
       ? filterSelection.year
@@ -201,7 +203,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
   }, [chartData]);
 
   /*
-   * Tambahkan ruang di atas batang supaya angka tidak terpotong.
+   * RUANG EKSTRA DI ATAS BATANG
    */
   const yAxisMax = useMemo(() => {
     if (maxDailyValue <= 0) return 5;
@@ -221,11 +223,12 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     return Math.ceil(maxDailyValue * 1.2);
   }, [maxDailyValue]);
 
+  const formatPercent = (value: number) =>
+    totalData > 0 ? `${((value / totalData) * 100).toFixed(1)}%` : '0.0%';
+
   return (
     <div className="mt-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      {/* ======================================================
-          HEADER
-      ====================================================== */}
+      {/* HEADER */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Weight Tolerance Analytics</h3>
@@ -239,9 +242,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
           </p>
         </div>
 
-        {/* ====================================================
-            FILTER
-        ==================================================== */}
+        {/* FILTER */}
         <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-gray-50 p-2.5">
           <div className="w-36">
             <label className="mb-1.5 block text-xs font-medium text-gray-500">Bulan</label>
@@ -293,9 +294,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
         </div>
       </div>
 
-      {/* ======================================================
-          EMPTY STATE
-      ====================================================== */}
+      {/* EMPTY STATE */}
       {!hasData ? (
         <div className="flex h-95 flex-col items-center justify-center text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
@@ -310,9 +309,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
         </div>
       ) : (
         <>
-          {/* ==================================================
-              CHART
-          ================================================== */}
+          {/* CHART */}
           <div className="h-105 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -320,7 +317,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                 margin={{
                   top: 30,
                   right: 20,
-                  left: 5,
+                  left: 20,
                   bottom: 35,
                 }}
                 barGap={2}
@@ -328,9 +325,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
               >
                 <CartesianGrid stroke="#e5e7eb" strokeDasharray="4 4" vertical={false} />
 
-                {/* ==================================================
-                    X AXIS
-                ================================================== */}
+                {/* X AXIS */}
                 <XAxis
                   dataKey="hari"
                   type="number"
@@ -350,9 +345,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   textAnchor="end"
                 />
 
-                {/* ==================================================
-                    Y AXIS
-                ================================================== */}
+                {/* Y AXIS */}
                 <YAxis
                   domain={[0, yAxisMax]}
                   allowDecimals={false}
@@ -362,7 +355,8 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   }}
                   axisLine={false}
                   tickLine={false}
-                  width={40}
+                  width={50}
+                  tickMargin={10}
                   label={{
                     value: 'Jumlah Data',
                     angle: -90,
@@ -372,9 +366,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   }}
                 />
 
-                {/* ==================================================
-                    TOOLTIP
-                ================================================== */}
+                {/* TOOLTIP */}
                 <Tooltip
                   labelFormatter={(label) =>
                     `Tanggal ${getDayLabel(
@@ -405,9 +397,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   ]}
                 />
 
-                {/* ==================================================
-                    LEGEND
-                ================================================== */}
+                {/* LEGEND */}
                 <Legend
                   verticalAlign="top"
                   align="right"
@@ -418,9 +408,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   }}
                 />
 
-                {/* ==================================================
-                    BAR DI ATAS TOLERANSI
-                ================================================== */}
+                {/* DI ATAS TOLERANSI */}
                 <Bar
                   dataKey="diAtas"
                   name="Di atas toleransi (+%)"
@@ -438,9 +426,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   />
                 </Bar>
 
-                {/* ==================================================
-                    BAR DI BAWAH TOLERANSI
-                ================================================== */}
+                {/* DI BAWAH TOLERANSI */}
                 <Bar
                   dataKey="diBawah"
                   name="Di bawah toleransi (-%)"
@@ -458,9 +444,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
                   />
                 </Bar>
 
-                {/* ==================================================
-                    BAR SESUAI TOLERANSI
-                ================================================== */}
+                {/* SESUAI TOLERANSI */}
                 <Bar
                   dataKey="sesuai"
                   name="Sesuai toleransi"
@@ -481,9 +465,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
             </ResponsiveContainer>
           </div>
 
-          {/* ======================================================
-              INFO PERIODE
-          ====================================================== */}
+          {/* INFO PERIODE */}
           <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-3">
             <div>
               <p className="text-xs text-gray-500">
@@ -497,9 +479,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
             <p className="text-xs text-gray-400">{daysInMonth} hari</p>
           </div>
 
-          {/* ======================================================
-              SUMMARY CARDS
-          ====================================================== */}
+          {/* SUMMARY CARDS */}
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {/* TOTAL */}
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -562,9 +542,7 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
             </div>
           </div>
 
-          {/* ======================================================
-              DETAIL PERSENTASE
-          ====================================================== */}
+          {/* DETAIL PERSENTASE */}
           {totalData > 0 && (
             <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
               <div className="mb-3 flex items-center justify-between">

@@ -19,10 +19,23 @@ import { useSidebar } from '@/app/layout';
 
 type WeighingItemWithNote = WeighingItem & {
   catatan?: string | null;
+  batchId?: string | null;
 };
 
 type ApiGroupWithNote = Omit<ApiGroup, 'data'> & {
-  data: (ApiGroup['data'][number] & { catatan?: string | null })[];
+  batchId?: string | null;
+  data: (ApiGroup['data'][number] & {
+    catatan?: string | null;
+    batchId?: string | null;
+  })[];
+};
+
+type DateGroup = {
+  key: string;
+  tanggal: string;
+  items: WeighingItemWithNote[];
+  latestTime: number;
+  latestId: number;
 };
 
 export default function SeluruhDataPage() {
@@ -76,6 +89,10 @@ export default function SeluruhDataPage() {
               warna: item.warna,
               dibuatPada: item.dibuatPada,
               catatan: item.catatan ?? null,
+
+              // Utamakan batchId milik baris jika API menyediakannya.
+              // Jika tidak, gunakan batchId kelompok dari API.
+              batchId: item.batchId ?? group.batchId ?? null,
             }))
         );
 
@@ -118,56 +135,94 @@ export default function SeluruhDataPage() {
     });
   }, [data, filterLebar, filterUkuran, filterKetebalan]);
 
-  // Kelompokkan tanggal: terbaru di atas, ID terbaru di atas
+  // Kelompokkan berdasarkan sesi penyimpanan (batchId), bukan tanggal saja.
+  // Data lama yang belum memiliki batchId tetap dikelompokkan berdasarkan tanggal.
   const groupedData = useMemo(() => {
-    const groups = new Map<string, WeighingItemWithNote[]>();
+    const groups = new Map<string, DateGroup>();
 
     filteredData.forEach((item) => {
-      const key = item.tanggal;
+      const key = item.batchId ? `batch:${item.batchId}` : `legacy:${item.tanggal}`;
+
+      const itemTime = item.dibuatPada ? new Date(item.dibuatPada).getTime() : 0;
+
+      const safeItemTime = Number.isFinite(itemTime) ? itemTime : 0;
 
       if (!groups.has(key)) {
-        groups.set(key, []);
+        groups.set(key, {
+          key,
+          tanggal: item.tanggal,
+          items: [],
+          latestTime: safeItemTime,
+          latestId: item.id,
+        });
       }
 
-      groups.get(key)!.push(item);
+      const group = groups.get(key)!;
+
+      group.items.push(item);
+
+      if (
+        safeItemTime > group.latestTime ||
+        (safeItemTime === group.latestTime && item.id > group.latestId)
+      ) {
+        group.latestTime = safeItemTime;
+        group.latestId = item.id;
+      }
     });
 
-    return Array.from(groups.entries())
-      .sort(([dateA], [dateB]) => {
-        // Format tanggal dari API adalah YYYY-MM-DD
-        return dateB.localeCompare(dateA);
-      })
-      .map(([tanggal, items]) => ({
-        tanggal,
-        items: [...items].sort((a, b) => b.id - a.id),
-      }));
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        items: [...group.items].sort((a, b) => {
+          const timeA = a.dibuatPada ? new Date(a.dibuatPada).getTime() : 0;
+          const timeB = b.dibuatPada ? new Date(b.dibuatPada).getTime() : 0;
+
+          // Baris terbaru di dalam kelompok juga berada di atas.
+          if (timeA !== timeB) return timeB - timeA;
+
+          return b.id - a.id;
+        }),
+      }))
+      .sort((a, b) => {
+        // Tanggal terbaru terlebih dahulu.
+        const dateComparison = b.tanggal.localeCompare(a.tanggal);
+
+        if (dateComparison !== 0) return dateComparison;
+
+        // Jika tanggal sama, sesi penyimpanan terbaru terlebih dahulu.
+        if (a.latestTime !== b.latestTime) {
+          return b.latestTime - a.latestTime;
+        }
+
+        return b.latestId - a.latestId;
+      });
   }, [filteredData]);
 
-  // Buka/tutup kelompok tanggal
-  const toggleDate = (tanggal: string) => {
+  // Buka/tutup kelompok sesi penyimpanan
+  const toggleDate = (key: string) => {
     setExpandedDates((previous) => {
       const next = new Set(previous);
 
-      if (next.has(tanggal)) {
-        next.delete(tanggal);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(tanggal);
+        next.add(key);
       }
 
       return next;
     });
   };
 
-  // Cek apakah semua kelompok tanggal sudah terbuka
+  // Cek apakah semua kelompok sudah terbuka
   const allDatesExpanded =
-    groupedData.length > 0 && groupedData.every((group) => expandedDates.has(group.tanggal));
+    groupedData.length > 0 && groupedData.every((group) => expandedDates.has(group.key));
 
-  // Buka/tutup semua kelompok tanggal
+  // Buka/tutup semua kelompok
   const toggleAllDates = () => {
     if (allDatesExpanded) {
       setExpandedDates(new Set());
     } else {
-      setExpandedDates(new Set(groupedData.map((group) => group.tanggal)));
+      setExpandedDates(new Set(groupedData.map((group) => group.key)));
     }
   };
 
@@ -283,20 +338,20 @@ export default function SeluruhDataPage() {
                   </tr>
                 ) : (
                   groupedData.map((group) => {
-                    const isExpanded = expandedDates.has(group.tanggal);
+                    const isExpanded = expandedDates.has(group.key);
 
                     const catatan = group.items
                       .find((item) => item.catatan?.trim())
                       ?.catatan?.trim();
 
                     return (
-                      <Fragment key={group.tanggal}>
-                        {/* Grup tanggal */}
+                      <Fragment key={group.key}>
+                        {/* Grup tanggal / sesi penyimpanan */}
                         <tr>
                           <td colSpan={7} className="border-b border-blue-200 bg-blue-50 p-0">
                             <button
                               type="button"
-                              onClick={() => toggleDate(group.tanggal)}
+                              onClick={() => toggleDate(group.key)}
                               aria-expanded={isExpanded}
                               aria-label={`${isExpanded ? 'Tutup' : 'Buka'} data tanggal ${formatTanggal(group.tanggal)}`}
                               className="flex w-full flex-wrap items-center justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"

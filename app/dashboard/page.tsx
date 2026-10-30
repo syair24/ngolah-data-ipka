@@ -46,7 +46,7 @@ export default function DashboardPage() {
         </div>
       </Navbar>
 
-      <main className="px-3 pt-20">
+      <main className="px-2 pt-20">
         {error && (
           <div
             role="alert"

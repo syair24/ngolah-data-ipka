@@ -123,8 +123,6 @@ function normalizeDate(value: string): string | null {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-// Format tanggal singkat: 02-11-2026
-// Format tanggal panjang: Senin, 2 November 2026
 function formatDateLongForMessage(value: string): string {
   const normalized = normalizeDate(value);
 
@@ -181,6 +179,7 @@ export async function GET(request: NextRequest) {
     const databaseData = await prisma.dataPenimbangan.findMany({
       select: {
         id: true,
+        batchId: true,
         tanggal: true,
         lebarMaterial: true,
         ukuran: true,
@@ -206,32 +205,36 @@ export async function GET(request: NextRequest) {
       ? databaseData.filter((item) => normalizeDate(item.tanggal) === searchTanggal)
       : databaseData;
 
-    const grouped = new Map<
-      string,
-      {
+    type GroupedItem = {
+      id: number;
+      lebarMaterial: number;
+      ukuran: string;
+      ketebalan: number;
+      beratPiece: number;
+      beratTabel: number;
+      toleransi: number;
+      warna: 'Hijau' | 'Putih' | 'Merah';
+      catatan: string | null;
+      dibuatPada: string;
+      batchId: string | null;
+    };
+
+    type GroupedData = {
+      id: number;
+      batchId: string | null;
+      tanggal: string;
+      tanggalISO: string;
+      toleransi: number;
+      user: {
         id: number;
-        tanggal: string;
-        tanggalISO: string;
-        toleransi: number;
-        user: {
-          id: number;
-          username: string;
-          email: string;
-        } | null;
-        data: {
-          id: number;
-          lebarMaterial: number;
-          ukuran: string;
-          ketebalan: number;
-          beratPiece: number;
-          beratTabel: number;
-          toleransi: number;
-          warna: 'Hijau' | 'Putih' | 'Merah';
-          catatan: string | null;
-          dibuatPada: string;
-        }[];
-      }
-    >();
+        username: string;
+        email: string;
+      } | null;
+      data: GroupedItem[];
+      latestTime: number;
+    };
+
+    const grouped = new Map<string, GroupedData>();
 
     for (const item of filteredData) {
       const tanggalISO = normalizeDate(item.tanggal);
@@ -246,20 +249,34 @@ export async function GET(request: NextRequest) {
 
       const warna = calculateColor(beratPiece, beratTabel, toleransi);
 
-      if (!grouped.has(tanggalISO)) {
-        grouped.set(tanggalISO, {
+      // Setiap batchId menjadi satu kelompok tersendiri.
+      // Data lama tanpa batchId menggunakan kelompok berdasarkan tanggal.
+      const groupKey = item.batchId ? `batch:${item.batchId}` : `legacy:${tanggalISO}`;
+
+      const dibuatPada = item.dibuatPada ? item.dibuatPada.toISOString() : new Date().toISOString();
+
+      const createdTime = new Date(dibuatPada).getTime();
+
+      if (!grouped.has(groupKey)) {
+        grouped.set(groupKey, {
           id: item.id,
-          // Tanggal untuk ditampilkan di card
+          batchId: item.batchId ?? null,
           tanggal: formatDateLongForMessage(tanggalISO),
-          // Tanggal ISO tetap tersedia untuk filter dan proses data
           tanggalISO,
           toleransi,
           user: item.user || null,
           data: [],
+          latestTime: Number.isFinite(createdTime) ? createdTime : 0,
         });
       }
 
-      grouped.get(tanggalISO)!.data.push({
+      const group = grouped.get(groupKey)!;
+
+      if (Number.isFinite(createdTime) && createdTime > group.latestTime) {
+        group.latestTime = createdTime;
+      }
+
+      group.data.push({
         id: item.id,
         lebarMaterial,
         ukuran: item.ukuran,
@@ -269,13 +286,42 @@ export async function GET(request: NextRequest) {
         toleransi,
         warna,
         catatan: item.catatan ?? null,
-        dibuatPada: item.dibuatPada ? item.dibuatPada.toISOString() : new Date().toISOString(),
+        dibuatPada,
+        batchId: item.batchId ?? null,
       });
     }
 
-    const result = Array.from(grouped.values()).sort((a, b) =>
-      b.tanggalISO.localeCompare(a.tanggalISO)
-    );
+    // Tanggal terbaru di atas.
+    // Jika tanggal sama, batch yang terakhir disimpan di atas.
+    const sortedGroups = Array.from(grouped.values()).sort((a, b) => {
+      const dateComparison = b.tanggalISO.localeCompare(a.tanggalISO);
+
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+
+      if (a.latestTime !== b.latestTime) {
+        return b.latestTime - a.latestTime;
+      }
+
+      return b.id - a.id;
+    });
+
+    // latestTime hanya digunakan untuk mengurutkan kelompok,
+    // tidak perlu dikirim sebagai field tambahan ke frontend.
+    const result = sortedGroups.map(({ latestTime, ...group }) => ({
+      ...group,
+      data: [...group.data].sort((a, b) => {
+        const timeA = new Date(a.dibuatPada).getTime();
+        const timeB = new Date(b.dibuatPada).getTime();
+
+        if (timeA !== timeB) {
+          return timeB - timeA;
+        }
+
+        return b.id - a.id;
+      }),
+    }));
 
     return NextResponse.json(result);
   } catch (error) {
@@ -499,7 +545,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Cari data yang benar-benar berubah.
     const existingById = new Map(existingData.map((item) => [item.id, item]));
 
     const changedItems = normalizedData.filter((item) => {
@@ -507,8 +552,7 @@ export async function PUT(request: NextRequest) {
 
       if (!oldItem) return false;
 
-      const oldCatatan = oldItem.catatan == null ? null : oldItem.catatan;
-
+      const oldCatatan = oldItem.catatan ?? null;
       const newCatatan = item.catatan === undefined ? oldCatatan : item.catatan;
 
       return (
@@ -542,7 +586,6 @@ export async function PUT(request: NextRequest) {
       )
     );
 
-    // NOTIFIKASI EDIT DENGAN FORMAT TANGGAL LENGKAP
     if (changedItems.length > 0) {
       await createActivityNotification(
         'UPDATE',
@@ -569,7 +612,7 @@ export async function PUT(request: NextRequest) {
 }
 
 // ==========================================
-// DELETE SEMUA DATA PENIMBANGAN PADA TANGGAL TERPILIH
+// DELETE DATA PENIMBANGAN BERDASARKAN ID
 // ==========================================
 
 export async function DELETE(request: NextRequest) {

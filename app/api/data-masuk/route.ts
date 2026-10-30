@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { randomUUID } from 'node:crypto';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/app/generated/prisma';
@@ -104,7 +105,13 @@ export async function POST(request: NextRequest) {
     }
 
     // =======================================================
-    // SIAPKAN DATA DENGAN USER ID DAN CATATAN
+    // ID UNIK UNTUK SATU KALI PENYIMPANAN
+    // =======================================================
+
+    const batchId = randomUUID();
+
+    // =======================================================
+    // SIAPKAN DATA DENGAN USER ID, CATATAN, DAN BATCH ID
     // =======================================================
 
     const rows = data.map((item: Record<string, unknown>, index: number) => {
@@ -169,6 +176,7 @@ export async function POST(request: NextRequest) {
         warna,
         catatan: catatan || null,
         userId: loggedInUserId,
+        batchId,
       };
     });
 
@@ -224,6 +232,7 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Data berhasil disimpan.',
         tanggal: formattedDate,
+        batchId,
         count: savedData.length,
       },
       { status: 201 }

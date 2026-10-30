@@ -46,5 +46,6 @@ model DataPenimbangan {
   dibuatPada     DateTime @default(now())
   diperbaruiPada DateTime @updatedAt
   userId         Int
+  batchId        String?
   user           User     @relation(fields: [userId], references: [id])
 }
