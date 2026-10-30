@@ -223,9 +223,6 @@ export default function WeightToleranceChart({ data }: WeightToleranceChartProps
     return Math.ceil(maxDailyValue * 1.2);
   }, [maxDailyValue]);
 
-  const formatPercent = (value: number) =>
-    totalData > 0 ? `${((value / totalData) * 100).toFixed(1)}%` : '0.0%';
-
   return (
     <div className="mt-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       {/* HEADER */}
